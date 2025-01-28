@@ -5,143 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Manager</title>
-    <style>
-        body {
-            font-family: Futura, sans-serif;
-            background-color: #27272A;
-            color: white;
-            margin: 0;
-            padding: 20px;
-            font-size: 12px;
-        }
-
-        span {
-            width: 100%;
-        }
-
-        h2 {
-            display: flex;
-            justify-content: left;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 24px;
-        }
-
-        .task-container {
-            margin-bottom: 20px;
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 10px 0;
-        }
-
-        li {
-            padding: 8px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            /* Нужно для анимации */
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-
-        li.move {
-            transform: translateY(30px);
-            /* Перемещение на 30px вниз (для анимации) */
-            opacity: 0;
-            /* Скрываем элемент при анимации */
-        }
-
-        li.move-down {
-            transform: translateY(30px);
-            /* Двигаем задачу вниз */
-            opacity: 0;
-        }
-
-        li.move-up {
-            transform: translateY(-30px);
-            /* Двигаем задачу вверх */
-            opacity: 0;
-        }
-
-        li:hover {
-            background: #364153;
-        }
-
-        .buttons {
-            display: flex;
-            gap: 4px;
-        }
-
-        button {
-            background: #222225;
-            border: none;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        textarea {
-            width: calc(100% - 20px);
-            border: none;
-            resize: none;
-            background: transparent;
-            color: white;
-            font-family: futura, sans-serif;
-            font-size: 12px;
-            height: 16px;
-            padding: 0;
-        }
-
-        textarea:focus,
-        textarea:active {
-            outline: none;
-        }
-
-        .pagewrapper {
-            max-width: 760px;
-            display: flex;
-            flex-direction: column;
-            margin: auto;
-            gap: 40px;
-        }
-
-        .completed {
-            text-decoration: line-through;
-            color: gray;
-        }
-
-        .text-size-small {
-            font-size: 12px;
-        }
-
-        .new-task-wrapper {
-            padding-left: 32px;
-            padding-top: 2px;
-        }
-
-        input[type="checkbox"] {
-            width: 12px;
-            height: 12px;
-            margin-right: 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div class="pagewrapper">
+        <div class="timer-container">
+            <div class="timer-display">00:00:00</div>
+            <button id="timer-toggle" class="timer-btn">▶️</button>
+        </div>
         <div class="task-container">
             <h2>
                 Сегодня <span class="text-size-small" id="today-date"></span>
                 <button onclick="clearList('today')">🗑️</button>
             </h2>
-            <ul id="today-list"></ul>
+            <ul id="today-list" ondrop="drop(event)" ondragover="allowDrop(event)"></ul>
             <div class="new-task-wrapper"><textarea id="new-task-today" placeholder="Новая задача"
                     onkeydown="handleKeyPress(event, 'today')"></textarea>
             </div>
@@ -152,200 +30,14 @@
                 Завтра <span class="text-size-small" id="tomorrow-date"></span>
                 <button onclick="clearList('tomorrow')">🗑️</button>
             </h2>
-            <ul id="tomorrow-list"></ul>
+            <ul id="tomorrow-list" ondrop="drop(event)" ondragover="allowDrop(event)"></ul>
             <div class="new-task-wrapper"><textarea id="new-task-tomorrow" placeholder="Новая задача"
                     onkeydown="handleKeyPress(event, 'tomorrow')"></textarea>
             </div>
         </div>
     </div>
-
-    <script>
-        const todayList = document.getElementById('today-list');
-        const tomorrowList = document.getElementById('tomorrow-list');
-
-        function loadTasks() {
-            const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-            const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
-            todayList.innerHTML = '';
-            tomorrowList.innerHTML = '';
-            todayTasks.forEach(task => addTaskToList(task.text, 'today', task.completed));
-            tomorrowTasks.forEach(task => addTaskToList(task.text, 'tomorrow', task.completed));
-        }
-
-        function saveTasks() {
-            const todayTasks = Array.from(todayList.children).map(li => ({
-                text: li.querySelector('span').textContent.trim(),
-                completed: li.querySelector('input[type="checkbox"]').checked
-            }));
-            const tomorrowTasks = Array.from(tomorrowList.children).map(li => ({
-                text: li.querySelector('span').textContent.trim(),
-                completed: li.querySelector('input[type="checkbox"]').checked
-            }));
-            localStorage.setItem('today-tasks', JSON.stringify(todayTasks));
-            localStorage.setItem('tomorrow-tasks', JSON.stringify(tomorrowTasks));
-        }
-
-        function addTask(list) {
-            const input = document.getElementById(`new-task-${list}`);
-            const tasks = input.value.trim().split('\n').filter(task => task);
-            tasks.reverse().forEach(task => addTaskToList(task, list));
-            saveTasks();
-            input.value = '';
-        }
-
-        function handleKeyPress(event, list) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                addTask(list);
-            }
-        }
-
-        function addTaskToList(task, list, completed = false) {
-            const li = document.createElement('li');
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = completed;
-            checkbox.onchange = () => {
-                taskText.classList.toggle('completed', checkbox.checked);
-                saveTasks();
-            };
-
-            const taskText = document.createElement('span');
-            taskText.textContent = task;
-            if (completed) {
-                taskText.classList.add('completed');
-            }
-
-            // Обработчик клика для редактирования задачи
-            taskText.addEventListener('click', (event) => {
-                const textarea = document.createElement('textarea');
-                textarea.value = taskText.textContent;
-
-                // Заменяем span на textarea
-                li.replaceChild(textarea, taskText);
-                textarea.focus();
-
-                // Отменяем действие, если кликнули на сам текст
-                event.stopPropagation();
-
-                // Обработчик потери фокуса (клик вне textarea)
-                const onClickOutside = (event) => {
-                    if (!li.contains(event.target)) {
-                        taskText.textContent = textarea.value;
-                        li.replaceChild(taskText, textarea);
-                        saveTasks();
-                        document.removeEventListener('click', onClickOutside);
-                    }
-                };
-
-                // Добавляем слушатель на документ, чтобы отследить клик вне textarea
-                document.addEventListener('click', onClickOutside);
-
-                // Если нажата клавиша Enter, сохраняем изменения
-                textarea.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') {
-                        taskText.textContent = textarea.value;
-                        li.replaceChild(taskText, textarea);
-                        saveTasks();
-                        event.preventDefault();
-                    } else if (event.key === 'Escape') {
-                        li.replaceChild(taskText, textarea);  // Отменить редактирование
-                    }
-                });
-            });
-
-            const buttons = document.createElement('div');
-            buttons.className = 'buttons';
-
-            const moveBtn = document.createElement('button');
-            moveBtn.textContent = list === 'today' ? 'На завтра' : 'На сегодня';
-            moveBtn.onclick = () => {
-                moveTask(li);
-            };
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = '✖';
-            deleteBtn.onclick = () => {
-                li.remove();
-                saveTasks();
-            };
-
-            buttons.appendChild(moveBtn);
-            buttons.appendChild(deleteBtn);
-            li.appendChild(checkbox);
-            li.appendChild(taskText);
-            li.appendChild(buttons);
-
-            // Добавление задачи в конец списка
-            document.getElementById(`${list}-list`).appendChild(li);
-        }
-
-        function moveTask(task) {
-            const currentList = task.parentElement.id === 'today-list' ? 'today' : 'tomorrow';
-            const targetList = currentList === 'today' ? 'tomorrow' : 'today';
-
-            // В зависимости от того, из какого списка перемещается задача, добавляем нужный класс
-            if (currentList === 'today') {
-                task.classList.add('move-down'); // Перемещаем вниз
-            } else {
-                task.classList.add('move-up'); // Перемещаем вверх
-            }
-
-            // Ждем завершения анимации, затем перемещаем элемент
-            setTimeout(() => {
-                task.classList.remove('move-down', 'move-up'); // Убираем классы анимации
-
-                // Перемещаем задачу в новый список
-                document.getElementById(`${targetList}-list`).appendChild(task);
-
-                // Обновляем кнопку для перемещения
-                const moveBtn = task.querySelector('button:first-child');
-                moveBtn.textContent = currentList === 'today' ? 'На сегодня' : 'На завтра';
-
-                saveTasks();
-            }, 300); // Таймаут должен совпадать с длительностью анимации (0.3s)
-        }
-
-        function clearList(list) {
-            const taskList = list === 'today' ? todayList : tomorrowList;
-            taskList.innerHTML = '';
-            saveTasks();
-        }
-
-        function updateDates() {
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-
-            document.getElementById('today-date').textContent = `${today.getDate()}, ${today.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
-            document.getElementById('tomorrow-date').textContent = `${tomorrow.getDate()}, ${tomorrow.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
-        }
-
-        function clearCompletedTasks() {
-            const todayTasks = Array.from(todayList.children).filter(li => !li.querySelector('input[type="checkbox"]').checked);
-            todayList.innerHTML = '';
-            todayTasks.forEach(task => todayList.appendChild(task));
-            saveTasks();
-        }
-
-        function shiftTasks() {
-            const today = new Date();
-            const lastVisit = new Date(localStorage.getItem('last-visit') || 0);
-            if (today.toDateString() !== lastVisit.toDateString()) {
-                const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
-                const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-                localStorage.setItem('today-tasks', JSON.stringify([...todayTasks, ...tomorrowTasks]));
-                localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
-                clearCompletedTasks();
-                localStorage.setItem('last-visit', today);
-            }
-        }
-
-        shiftTasks();
-        updateDates();
-        loadTasks();
-    </script>
+    <script src="script.js"></script>
+    <script src="timer.js"></script>
 </body>
 
 </html>

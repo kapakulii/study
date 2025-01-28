@@ -1,0 +1,220 @@
+body {
+    font-family: Futura, sans-serif;
+    background-color: #27272A;
+    color: white;
+    margin: 0;
+    padding: 20px;
+    font-size: 12px;
+}
+
+.pagewrapper {
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    gap: 40px;
+}
+
+/* Стили для таймера */
+.timer-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 15px;
+    background: #2d2d30;
+    border-radius: 8px;
+}
+
+.timer-display {
+    font-size: 24px;
+    font-family: monospace;
+    letter-spacing: 2px;
+}
+
+.timer-btn {
+    background: #222225;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+/* Стили для контейнеров задач */
+.task-container {
+    margin-bottom: 20px;
+}
+
+h2 {
+    display: flex;
+    justify-content: left;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 24px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px 0;
+    min-height: 20px;
+}
+
+/* Стили для карточек задач */
+li {
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #323234;
+    margin-bottom: 4px;
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+li>*:nth-child(1) {
+    order: 1;
+}
+
+/* Чекбокс */
+li>*:nth-child(2) {
+    order: 2;
+}
+
+/* Текст */
+li>*:nth-child(3) {
+    order: 3;
+}
+
+/* Огонёк */
+li>*:nth-child(4) {
+    order: 4;
+}
+
+/* Кнопки */
+
+/* Стили для элементов задач */
+input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+    order: 1;
+}
+
+span {
+    flex-grow: 1;
+    order: 2;
+}
+
+.important-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    order: 3;
+}
+
+.important-btn.active {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px #ff5722);
+}
+
+.buttons {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-left: auto;
+    order: 4;
+}
+
+/* Ховер-эффекты */
+li:hover {
+    background: #364153;
+}
+
+li:hover .important-btn:not(.active),
+li:hover .buttons {
+    opacity: 1;
+}
+
+/* Состояния задач */
+.completed {
+    text-decoration: line-through;
+    color: gray;
+}
+
+li.important {
+    background: #422c2c;
+    border-left: 3px solid #ff5722;
+}
+
+li.important .important-btn {
+    opacity: 1;
+}
+
+/* Drag and Drop стили */
+li.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+li.placeholder {
+    background: rgba(74, 74, 76, 0.3) !important;
+    border: 2px dashed #666;
+    height: 40px;
+    margin: 4px 0;
+    transition: all 0.3s ease;
+}
+
+/* Поле для новых задач */
+.new-task-wrapper {
+    padding-left: 32px;
+    padding-top: 2px;
+}
+
+textarea {
+    width: calc(100% - 20px);
+    border: none;
+    resize: none;
+    background: transparent;
+    color: white;
+    font-family: futura, sans-serif;
+    font-size: 12px;
+    height: 16px;
+    padding: 0;
+}
+
+textarea:focus,
+textarea:active {
+    outline: none;
+}
+
+/* Мобильная версия */
+@media (max-width: 600px) {
+    .buttons {
+        opacity: 1 !important;
+    }
+
+    li {
+        padding: 12px;
+    }
+
+    button {
+        padding: 6px 12px;
+    }
+
+    .timer-container {
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+
+    .timer-display {
+        font-size: 20px;
+    }
+}
