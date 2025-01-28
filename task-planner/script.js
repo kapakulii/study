@@ -3,37 +3,37 @@ const tomorrowList = document.getElementById('tomorrow-list');
 let history = [];
 const MAX_HISTORY = 50;
 
+// Загрузка задач
 function loadTasks() {
     const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
     const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
+
     todayList.innerHTML = '';
     tomorrowList.innerHTML = '';
     todayTasks.forEach(task => task.text && addTaskToList(task.text, 'today', task));
     tomorrowTasks.forEach(task => task.text && addTaskToList(task.text, 'tomorrow', task));
 }
 
+// Сохранение задач
 function saveTasks() {
     saveStateToHistory();
-    const todayTasks = Array.from(todayList.children)
-        .map(li => ({
-            text: li.querySelector('span')?.textContent.trim() || '',
-            completed: li.querySelector('input[type="checkbox"]')?.checked || false,
-            important: li.querySelector('.important-btn')?.classList.contains('active') || false
-        }))
-        .filter(task => task.text !== '');
+    const todayTasks = Array.from(todayList.children).map(li => ({
+        text: li.querySelector('span')?.textContent.trim() || '',
+        completed: li.querySelector('input[type="checkbox"]')?.checked || false,
+        important: li.querySelector('.important-btn')?.classList.contains('active') || false
+    })).filter(task => task.text !== '');
 
-    const tomorrowTasks = Array.from(tomorrowList.children)
-        .map(li => ({
-            text: li.querySelector('span')?.textContent.trim() || '',
-            completed: li.querySelector('input[type="checkbox"]')?.checked || false,
-            important: li.querySelector('.important-btn')?.classList.contains('active') || false
-        }))
-        .filter(task => task.text !== '');
+    const tomorrowTasks = Array.from(tomorrowList.children).map(li => ({
+        text: li.querySelector('span')?.textContent.trim() || '',
+        completed: li.querySelector('input[type="checkbox"]')?.checked || false,
+        important: li.querySelector('.important-btn')?.classList.contains('active') || false
+    })).filter(task => task.text !== '');
 
     localStorage.setItem('today-tasks', JSON.stringify(todayTasks));
     localStorage.setItem('tomorrow-tasks', JSON.stringify(tomorrowTasks));
 }
 
+// История изменений
 function saveStateToHistory() {
     history.push({
         today: localStorage.getItem('today-tasks'),
@@ -42,19 +42,16 @@ function saveStateToHistory() {
     if (history.length > MAX_HISTORY) history.shift();
 }
 
+// Добавление новой задачи
 function addTask(list) {
     const input = document.getElementById(`new-task-${list}`);
     const tasks = input.value.trim().split('\n').filter(task => task);
     tasks.reverse().forEach(task => addTaskToList(task, list));
     saveTasks();
     input.value = '';
-
-    li.appendChild(checkbox);    // ☑
-    li.appendChild(taskText);    // Текст
-    li.appendChild(importantBtn); // 🔥
-    li.appendChild(buttons);     // Кнопки
 }
 
+// Обработка нажатия клавиш
 function handleKeyPress(event, list) {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -62,6 +59,7 @@ function handleKeyPress(event, list) {
     }
 }
 
+// Создание элемента задачи
 function addTaskToList(task, list, options = {}) {
     if (!task.trim()) return;
 
@@ -70,12 +68,10 @@ function addTaskToList(task, list, options = {}) {
     li.draggable = true;
     li.addEventListener('dragstart', dragStart);
     li.addEventListener('dragend', dragEnd);
-    li.addEventListener('mouseenter', () => li.classList.add('hovered'));
-    li.addEventListener('mouseleave', () => li.classList.remove('hovered'));
 
-    // Important Button
+    // Кнопка важности
     const importantBtn = document.createElement('button');
-    importantBtn.className = 'important-btn' + (important ? ' active' : '');
+    importantBtn.className = `important-btn${important ? ' active' : ''}`;
     importantBtn.innerHTML = '🔥';
     importantBtn.onclick = (e) => {
         e.stopPropagation();
@@ -84,60 +80,59 @@ function addTaskToList(task, list, options = {}) {
         saveTasks();
     };
 
-    // Checkbox
+    // Чекбокс
+    // Чекбокс
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = completed;
     checkbox.onchange = () => {
+        const taskText = li.querySelector('span');
         taskText.classList.toggle('completed', checkbox.checked);
-        saveTasks();
+        saveTasks();  // Сохраняем изменения в локальное хранилище без изменения порядка
     };
 
-    // Task Text
+    // Текст задачи
     const taskText = document.createElement('span');
     taskText.textContent = task;
     if (completed) taskText.classList.add('completed');
     if (important) li.classList.add('important');
 
-    // Task Editing
+    // Редактирование задачи
     taskText.addEventListener('click', (event) => {
         const textarea = document.createElement('textarea');
         textarea.value = taskText.textContent;
         li.replaceChild(textarea, taskText);
         textarea.focus();
 
-        const onClickOutside = (event) => {
-            if (!li.contains(event.target)) {
-                const newText = textarea.value.trim();
-                if (!newText) li.remove();
-                else {
-                    taskText.textContent = newText;
-                    li.replaceChild(taskText, textarea);
-                }
-                saveTasks();
-                document.removeEventListener('click', onClickOutside);
+        const finishEditing = () => {
+            const newText = textarea.value.trim();
+            if (!newText) li.remove();
+            else {
+                taskText.textContent = newText;
+                li.replaceChild(taskText, textarea);
             }
+            saveTasks();
+            document.removeEventListener('click', onClickOutside);
+        };
+
+        const onClickOutside = (event) => {
+            if (!li.contains(event.target)) finishEditing();
         };
 
         document.addEventListener('click', onClickOutside);
 
         textarea.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
-                const newText = textarea.value.trim();
-                if (!newText) li.remove();
-                else {
-                    taskText.textContent = newText;
-                    li.replaceChild(taskText, textarea);
-                }
-                saveTasks();
+                finishEditing();
                 event.preventDefault();
             } else if (event.key === 'Escape') {
                 li.replaceChild(taskText, textarea);
+                document.removeEventListener('click', onClickOutside);
             }
         });
     });
 
-    // Action Buttons
+    // Кнопки управления
     const buttons = document.createElement('div');
     buttons.className = 'buttons';
 
@@ -160,15 +155,17 @@ function addTaskToList(task, list, options = {}) {
     buttons.appendChild(moveBtn);
     buttons.appendChild(deleteBtn);
 
-    // Element Order
+    // Сборка элемента
     li.appendChild(importantBtn);
     li.appendChild(checkbox);
     li.appendChild(taskText);
     li.appendChild(buttons);
 
-    document.getElementById(`${list}-list`).appendChild(li);
+    const targetList = document.getElementById(`${list}-list`);
+    completed ? targetList.prepend(li) : targetList.appendChild(li);
 }
 
+// Перемещение задачи между списками
 function moveTask(task) {
     const currentList = task.parentElement.id === 'today-list' ? 'today' : 'tomorrow';
     const targetList = currentList === 'today' ? 'tomorrow' : 'today';
@@ -190,6 +187,7 @@ function updateMoveButton(li, newList) {
     moveBtn.textContent = newList === 'today' ? 'На завтра' : 'На сегодня';
 }
 
+// Очистка списка
 function clearList(list) {
     if (!confirm('Вы уверены, что хотите удалить все задачи?')) return;
     const taskList = list === 'today' ? todayList : tomorrowList;
@@ -197,27 +195,56 @@ function clearList(list) {
     saveTasks();
 }
 
+// Обновление дат
 function updateDates() {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    document.getElementById('today-date').textContent = `${today.getDate()}, ${today.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
-    document.getElementById('tomorrow-date').textContent = `${tomorrow.getDate()}, ${tomorrow.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
+
+    document.getElementById('today-date').textContent =
+        `${today.getDate()}, ${today.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
+    document.getElementById('tomorrow-date').textContent =
+        `${tomorrow.getDate()}, ${tomorrow.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
 }
 
+// Перенос задач на следующий день
 function shiftTasks() {
     const today = new Date();
     const lastVisit = new Date(localStorage.getItem('last-visit') || 0);
-    if (today.toDateString() !== lastVisit.toDateString()) {
-        const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
-        const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-        localStorage.setItem('today-tasks', JSON.stringify([...todayTasks, ...tomorrowTasks]));
-        localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
-        localStorage.setItem('last-visit', today);
-        loadTasks();
+
+    if (today.toDateString() === lastVisit.toDateString()) return;
+
+    // Архивирование выполненных задач
+    const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
+    const completedTasks = todayTasks.filter(task => task.completed);
+
+    if (completedTasks.length > 0) {
+        const archive = JSON.parse(localStorage.getItem('archive')) || [];
+        archive.push({
+            date: lastVisit.toISOString(),
+            tasks: completedTasks
+        });
+
+        // Очистка архива старше месяца
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const filteredArchive = archive.filter(entry =>
+            new Date(entry.date) > oneMonthAgo
+        );
+
+        localStorage.setItem('archive', JSON.stringify(filteredArchive));
     }
+
+    // Перенос задач
+    const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
+    localStorage.setItem('today-tasks', JSON.stringify(tomorrowTasks));
+    localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
+    localStorage.setItem('last-visit', today.toISOString());
+
+    loadTasks();
 }
 
+// Drag and Drop
 let draggedItem = null;
 let placeholder = null;
 let lastPlaceholderPosition = null;
@@ -260,8 +287,7 @@ function allowDrop(event) {
         const box = child.getBoundingClientRect();
         const offset = event.clientY - box.top - box.height / 2;
         return offset < 0 && offset > closest.offset ?
-            { offset: offset, element: child } :
-            closest;
+            { offset: offset, element: child } : closest;
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 
     if (placeholder) {
@@ -282,8 +308,9 @@ function drop(event) {
     }
 }
 
+// Undo/Redo
 function handleUndo(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         const state = history.pop();
         if (state) {
@@ -294,6 +321,43 @@ function handleUndo(e) {
     }
 }
 
+// Архив
+document.getElementById('archive-btn').addEventListener('click', showArchive);
+document.querySelector('.close').addEventListener('click', () => {
+    document.getElementById('archive-modal').style.display = 'none';
+});
+
+function showArchive() {
+    const archive = JSON.parse(localStorage.getItem('archive')) || [];
+    const archiveList = document.getElementById('archive-list');
+    archiveList.innerHTML = '';
+
+    if (archive.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-archive-message';
+        emptyMessage.textContent = 'Сейчас архив пуст. Выполненные задачи перемещаются сюда на следующий день';
+        archiveList.appendChild(emptyMessage);
+    } else {
+        archive.forEach(entry => {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'archive-day';
+            dayElement.innerHTML = `<h3>${new Date(entry.date).toLocaleDateString('ru-RU')}</h3>`;
+
+            entry.tasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'archive-task';
+                taskElement.textContent = task.text;
+                dayElement.appendChild(taskElement);
+            });
+
+            archiveList.appendChild(dayElement);
+        });
+    }
+
+    document.getElementById('archive-modal').style.display = 'block';
+}
+
+// Инициализация
 document.addEventListener('keydown', handleUndo);
 shiftTasks();
 updateDates();

@@ -10,17 +10,15 @@
 
 <body>
     <div class="pagewrapper">
-        <div class="timer-container">
-            <div class="timer-display">00:00:00</div>
-            <button id="timer-toggle" class="timer-btn">▶️</button>
-        </div>
+
         <div class="task-container">
             <h2>
                 Сегодня <span class="text-size-small" id="today-date"></span>
                 <button onclick="clearList('today')">🗑️</button>
             </h2>
             <ul id="today-list" ondrop="drop(event)" ondragover="allowDrop(event)"></ul>
-            <div class="new-task-wrapper"><textarea id="new-task-today" placeholder="Новая задача"
+            <div class="new-task-wrapper">
+                <textarea id="new-task-today" placeholder="Новая задача"
                     onkeydown="handleKeyPress(event, 'today')"></textarea>
             </div>
         </div>
@@ -31,13 +29,23 @@
                 <button onclick="clearList('tomorrow')">🗑️</button>
             </h2>
             <ul id="tomorrow-list" ondrop="drop(event)" ondragover="allowDrop(event)"></ul>
-            <div class="new-task-wrapper"><textarea id="new-task-tomorrow" placeholder="Новая задача"
+            <div class="new-task-wrapper">
+                <textarea id="new-task-tomorrow" placeholder="Новая задача"
                     onkeydown="handleKeyPress(event, 'tomorrow')"></textarea>
             </div>
         </div>
     </div>
+
+    <button id="archive-btn" class="archive-btn">Архив</button>
+
+    <div id="archive-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="archive-list"></div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
-    <script src="timer.js"></script>
 </body>
 
 </html>

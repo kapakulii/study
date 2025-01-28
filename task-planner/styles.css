@@ -8,37 +8,11 @@ body {
 }
 
 .pagewrapper {
-    max-width: 760px;
+    max-width: 600px;
     display: flex;
     flex-direction: column;
     margin: auto;
-    gap: 40px;
-}
-
-/* Стили для таймера */
-.timer-container {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 30px;
-    padding: 15px;
-    background: #2d2d30;
-    border-radius: 8px;
-}
-
-.timer-display {
-    font-size: 24px;
-    font-family: monospace;
-    letter-spacing: 2px;
-}
-
-.timer-btn {
-    background: #222225;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 18px;
+    gap: 60px;
 }
 
 /* Стили для контейнеров задач */
@@ -64,13 +38,11 @@ ul {
 
 /* Стили для карточек задач */
 li {
-    padding: 10px 15px;
+    padding: 6px;
     border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: #323234;
-    margin-bottom: 4px;
+    gap: 8px;
     cursor: grab;
     transition: all 0.3s ease;
 }
@@ -100,7 +72,6 @@ li>*:nth-child(4) {
 input[type="checkbox"] {
     width: 12px;
     height: 12px;
-    margin-right: 8px;
     order: 1;
 }
 
@@ -167,7 +138,7 @@ li.dragging {
 li.placeholder {
     background: rgba(74, 74, 76, 0.3) !important;
     border: 2px dashed #666;
-    height: 40px;
+    height: 20px;
     margin: 4px 0;
     transition: all 0.3s ease;
 }
@@ -195,9 +166,109 @@ textarea:active {
     outline: none;
 }
 
-/* Мобильная версия */
+.archive-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #2d2d30;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #2d2d30;
+    margin: 15% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.archive-day {
+    margin-bottom: 20px;
+}
+
+.archive-day h3 {
+    color: #ccc;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.archive-task {
+    background: #323234;
+    padding: 8px;
+    margin: 4px 0;
+    border-radius: 4px;
+    color: #888;
+    text-decoration: line-through;
+}
+
+/* Добавить в конец файла */
+.archive-empty {
+    color: #666;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+li>*:nth-child(1) {
+    order: 1;
+}
+
+/* Checkbox */
+li>*:nth-child(2) {
+    order: 2;
+}
+
+/* Text */
+li>*:nth-child(3) {
+    order: 3;
+}
+
+/* Buttons */
+li>*:nth-child(4) {
+    order: 4;
+}
+
+/* Important */
+
+.important-btn {
+    margin-left: auto;
+    order: 5 !important;
+}
+
 @media (max-width: 600px) {
+    .important-btn {
+        order: 5 !important;
+        margin-left: 0;
+        opacity: 1 !important;
+    }
+
     .buttons {
+        order: 4 !important;
         opacity: 1 !important;
     }
 
@@ -207,14 +278,5 @@ textarea:active {
 
     button {
         padding: 6px 12px;
-    }
-
-    .timer-container {
-        padding: 10px;
-        margin-bottom: 20px;
-    }
-
-    .timer-display {
-        font-size: 20px;
     }
 }
