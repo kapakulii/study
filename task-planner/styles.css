@@ -1,83 +1,106 @@
+:root {
+    --primary-bg: #20232b;
+    --secondary-bg: #303743;
+    --hover-bg: #2C2F36;
+    --highlight-bg: #422c2c;
+    --border-color: #ff5722;
+    --text-color: white;
+    --muted-text: rgba(255, 255, 255, 0.2);
+    --highlight-text: #ff5722;
+    --modal-bg: rgba(0, 0, 0, 0.5);
+    --button-bg: #2c303b;
+    --button-hover-bg: #303743;
+    --completed-text: #ff5722;
+}
+
 body {
     font-family: Futura, sans-serif;
-    background-color: #27272A;
-    color: white;
+    background-color: var(--primary-bg);
+    color: var(--text-color);
     margin: 0;
-    padding: 20px;
-    font-size: 12px;
+    padding: 26px;
+    font-size: 16px;
 }
 
 .pagewrapper {
-    max-width: 600px;
+    max-width: 768px;
     display: flex;
     flex-direction: column;
     margin: auto;
-    gap: 60px;
+    gap: 42px;
 }
 
-/* Стили для контейнеров задач */
+/* Task container styles */
 .task-container {
-    margin-bottom: 20px;
+    margin-bottom: 26px;
+}
+
+.completed {
+    color: var(--muted-text);
 }
 
 h2 {
     display: flex;
     justify-content: left;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
-    margin-bottom: 12px;
-    font-size: 24px;
+    margin-bottom: 16px;
+    font-size: 32px;
 }
 
 ul {
     list-style: none;
     padding: 0;
-    margin: 0 0 10px 0;
-    min-height: 20px;
+    margin: 0 0 13px 0;
+    min-height: 26px;
 }
 
-/* Стили для карточек задач */
+/* Task card styles */
 li {
     padding: 6px;
-    border-radius: 8px;
+    border-radius: 10px;
     display: flex;
+    align-items: flex-start;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: grab;
     transition: all 0.3s ease;
 }
 
-li>*:nth-child(1) {
-    order: 1;
+li:hover {
+    background: var(--secondary-bg);
 }
 
-/* Чекбокс */
-li>*:nth-child(2) {
-    order: 2;
+li.important {
+    background: var(--highlight-bg);
+    border-left: 4px solid var(--border-color);
 }
 
-/* Текст */
-li>*:nth-child(3) {
-    order: 3;
+li.completed {
+    color: var(--completed-text);
 }
 
-/* Огонёк */
-li>*:nth-child(4) {
-    order: 4;
+li.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
 }
 
-/* Кнопки */
+li.placeholder {
+    background: var(--hover-bg);
+    border: 2px dashed var(--muted-text);
+    height: 26px;
+    margin: 6px 0;
+    transition: all 0.3s ease;
+}
 
-/* Стили для элементов задач */
+/* Task elements */
 input[type="checkbox"] {
-    width: 12px;
-    height: 12px;
-    order: 1;
+    width: 16px;
+    height: 16px;
 }
 
 span {
     flex-grow: 1;
-    order: 2;
 }
 
 .important-btn {
@@ -87,26 +110,37 @@ span {
     opacity: 0;
     transition: opacity 0.2s ease;
     padding: 0;
-    order: 3;
+    width: 21px;
+    height: 21px;
 }
 
 .important-btn.active {
     opacity: 1;
-    filter: drop-shadow(0 0 2px #ff5722);
+    filter: drop-shadow(0 0 3px var(--border-color));
 }
 
 .buttons {
     display: flex;
-    gap: 4px;
+    gap: 0px;
     opacity: 0;
     transition: opacity 0.2s ease;
     margin-left: auto;
-    order: 4;
 }
 
-/* Ховер-эффекты */
-li:hover {
-    background: #364153;
+button {
+    font-family: Futura, sans-serif;
+    font-size: 16px;
+    color: var(--text-color);
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    padding: 0px 5px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 li:hover .important-btn:not(.active),
@@ -114,51 +148,27 @@ li:hover .buttons {
     opacity: 1;
 }
 
-/* Состояния задач */
-.completed {
-    text-decoration: line-through;
-    color: gray;
-}
-
-li.important {
-    background: #422c2c;
-    border-left: 3px solid #ff5722;
-}
-
-li.important .important-btn {
-    opacity: 1;
-}
-
-/* Drag and Drop стили */
-li.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-}
-
-li.placeholder {
-    background: rgba(74, 74, 76, 0.3) !important;
-    border: 2px dashed #666;
-    height: 20px;
-    margin: 4px 0;
-    transition: all 0.3s ease;
-}
-
-/* Поле для новых задач */
+/* New task input */
 .new-task-wrapper {
-    padding-left: 32px;
-    padding-top: 2px;
+    padding-left: 60px;
+    padding-top: 0px;
+    margin-top: -7px;
 }
 
 textarea {
-    width: calc(100% - 20px);
+    width: calc(100% - 27px);
     border: none;
     resize: none;
     background: transparent;
-    color: white;
-    font-family: futura, sans-serif;
-    font-size: 12px;
-    height: 16px;
+    color: var(--text-color);
+    font-family: Futura, sans-serif;
+    font-size: 16px;
+    height: 21px;
     padding: 0;
+}
+
+textarea::placeholder {
+    color: var(--muted-text);
 }
 
 textarea:focus,
@@ -166,18 +176,25 @@ textarea:active {
     outline: none;
 }
 
+/* Archive button */
 .archive-btn {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #2d2d30;
-    color: white;
+    bottom: 24px;
+    right: 24px;
+    background: var(--button-bg);
+    color: var(--text-color);
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 12px 24px;
+    border-radius: 8px;
     cursor: pointer;
+    transition: background 0.2s ease;
 }
 
+.archive-btn:hover {
+    background: var(--button-hover-bg);
+}
+
+/* Modal styles */
 .modal {
     display: none;
     position: fixed;
@@ -185,98 +202,73 @@ textarea:active {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--modal-bg);
     z-index: 1000;
 }
 
 .modal-content {
-    background-color: #2d2d30;
-    margin: 15% auto;
-    padding: 20px;
+    background-color: var(--primary-bg);
+    margin: 20% auto;
+    padding: 24px;
     width: 80%;
-    max-width: 600px;
+    max-width: 800px;
     border-radius: 8px;
     position: relative;
 }
 
 .close {
-    color: #aaa;
+    color: var(--muted-text);
     float: right;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     cursor: pointer;
 }
 
+/* Archive tasks */
 .archive-day {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .archive-day h3 {
-    color: #ccc;
-    margin: 0 0 10px 0;
-    font-size: 16px;
+    color: var(--text-color);
+    margin: 0 0 12px 0;
+    font-size: 20px;
 }
 
 .archive-task {
-    background: #323234;
-    padding: 8px;
+    padding: 4px;
     margin: 4px 0;
-    border-radius: 4px;
-    color: #888;
-    text-decoration: line-through;
+    color: var(--muted-text);
 }
 
-/* Добавить в конец файла */
 .archive-empty {
-    color: #666;
+    color: var(--muted-text);
     text-align: center;
-    padding: 20px;
+    padding: 24px;
     font-style: italic;
 }
 
-li>*:nth-child(1) {
-    order: 1;
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* width: 20px; */
+    height: 20px;
+    margin-right: 4px;
 }
 
-/* Checkbox */
-li>*:nth-child(2) {
-    order: 2;
+.custom-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
 }
 
-/* Text */
-li>*:nth-child(3) {
-    order: 3;
+.custom-checkbox:hover {
+    transform: scale(1.1);
 }
 
-/* Buttons */
-li>*:nth-child(4) {
-    order: 4;
-}
-
-/* Important */
-
-.important-btn {
-    margin-left: auto;
-    order: 5 !important;
-}
-
-@media (max-width: 600px) {
-    .important-btn {
-        order: 5 !important;
-        margin-left: 0;
-        opacity: 1 !important;
-    }
-
-    .buttons {
-        order: 4 !important;
-        opacity: 1 !important;
-    }
-
-    li {
-        padding: 12px;
-    }
-
-    button {
-        padding: 6px 12px;
-    }
+input[type="checkbox"] {
+    display: none;
+    /* Скрываем стандартный чекбокс */
 }

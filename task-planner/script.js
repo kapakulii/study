@@ -19,13 +19,13 @@ function saveTasks() {
     saveStateToHistory();
     const todayTasks = Array.from(todayList.children).map(li => ({
         text: li.querySelector('span')?.textContent.trim() || '',
-        completed: li.querySelector('input[type="checkbox"]')?.checked || false,
+        completed: li.querySelector('.custom-checkbox')?.src.includes('checkbox-true.svg') || false,
         important: li.querySelector('.important-btn')?.classList.contains('active') || false
     })).filter(task => task.text !== '');
 
     const tomorrowTasks = Array.from(tomorrowList.children).map(li => ({
         text: li.querySelector('span')?.textContent.trim() || '',
-        completed: li.querySelector('input[type="checkbox"]')?.checked || false,
+        completed: li.querySelector('.custom-checkbox')?.src.includes('checkbox-true.svg') || false,
         important: li.querySelector('.important-btn')?.classList.contains('active') || false
     })).filter(task => task.text !== '');
 
@@ -80,16 +80,24 @@ function addTaskToList(task, list, options = {}) {
         saveTasks();
     };
 
-    // Чекбокс
-    // Чекбокс
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = completed;
-    checkbox.onchange = () => {
+    // Кастомный чекбокс
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'checkbox-container';
+
+    const checkbox = document.createElement('img');
+    checkbox.className = 'custom-checkbox';
+    checkbox.src = completed ? 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-true.svg' : 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-false.svg';
+    checkbox.alt = 'checkbox';
+    checkbox.onclick = (e) => {
+        e.stopPropagation();
+        const isCompleted = checkbox.src.includes('checkbox-true.svg');
+        checkbox.src = isCompleted ? 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-false.svg' : 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-true.svg';
         const taskText = li.querySelector('span');
-        taskText.classList.toggle('completed', checkbox.checked);
-        saveTasks();  // Сохраняем изменения в локальное хранилище без изменения порядка
+        taskText.classList.toggle('completed', !isCompleted);
+        saveTasks();
     };
+
+    checkboxContainer.appendChild(checkbox);
 
     // Текст задачи
     const taskText = document.createElement('span');
@@ -97,39 +105,50 @@ function addTaskToList(task, list, options = {}) {
     if (completed) taskText.classList.add('completed');
     if (important) li.classList.add('important');
 
-    // Редактирование задачи
-    taskText.addEventListener('click', (event) => {
+    // Функция редактирования задачи
+    const activateEdit = () => {
         const textarea = document.createElement('textarea');
         textarea.value = taskText.textContent;
         li.replaceChild(textarea, taskText);
         textarea.focus();
 
-        const finishEditing = () => {
+        const saveChanges = () => {
             const newText = textarea.value.trim();
-            if (!newText) li.remove();
-            else {
-                taskText.textContent = newText;
-                li.replaceChild(taskText, textarea);
+            if (newText !== taskText.textContent) {
+                if (newText) {
+                    taskText.textContent = newText;
+                    if (!li.contains(taskText)) {
+                        li.insertBefore(taskText, buttons);
+                    }
+                    saveTasks();
+                } else {
+                    li.remove();
+                    saveTasks();
+                }
             }
-            saveTasks();
-            document.removeEventListener('click', onClickOutside);
+            li.replaceChild(taskText, textarea);
         };
 
-        const onClickOutside = (event) => {
-            if (!li.contains(event.target)) finishEditing();
-        };
-
-        document.addEventListener('click', onClickOutside);
-
-        textarea.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                finishEditing();
-                event.preventDefault();
-            } else if (event.key === 'Escape') {
+        textarea.addEventListener('blur', saveChanges);
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveChanges();
+            }
+            if (e.key === 'Escape') {
                 li.replaceChild(taskText, textarea);
-                document.removeEventListener('click', onClickOutside);
             }
         });
+    };
+
+    taskText.addEventListener('click', (e) => {
+        if (e.detail === 1) {
+            activateEdit();
+        }
+    });
+
+    taskText.addEventListener('dblclick', (e) => {
+        activateEdit();
     });
 
     // Кнопки управления
@@ -157,7 +176,7 @@ function addTaskToList(task, list, options = {}) {
 
     // Сборка элемента
     li.appendChild(importantBtn);
-    li.appendChild(checkbox);
+    li.appendChild(checkboxContainer);
     li.appendChild(taskText);
     li.appendChild(buttons);
 
@@ -216,7 +235,9 @@ function shiftTasks() {
 
     // Архивирование выполненных задач
     const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-    const completedTasks = todayTasks.filter(task => task.completed);
+    const completedTasks = todayTasks.filter(task =>
+        task.completed || document.querySelector(`span:contains('${task.text}')`)?.classList.contains('completed')
+    );
 
     if (completedTasks.length > 0) {
         const archive = JSON.parse(localStorage.getItem('archive')) || [];
