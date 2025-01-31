@@ -1,6 +1,7 @@
 const todayList = document.getElementById('today-list');
 const tomorrowList = document.getElementById('tomorrow-list');
-let history = [];
+let undoStack = [];
+let redoStack = [];
 const MAX_HISTORY = 50;
 
 // Загрузка задач
@@ -35,11 +36,61 @@ function saveTasks() {
 
 // История изменений
 function saveStateToHistory() {
-    history.push({
+    const state = {
         today: localStorage.getItem('today-tasks'),
         tomorrow: localStorage.getItem('tomorrow-tasks')
-    });
-    if (history.length > MAX_HISTORY) history.shift();
+    };
+
+    undoStack.push(state);
+    if (undoStack.length > MAX_HISTORY) undoStack.shift();
+    redoStack = [];
+}
+
+// Отмена действия
+function undo() {
+    if (undoStack.length === 0) return;
+
+    const currentState = {
+        today: localStorage.getItem('today-tasks'),
+        tomorrow: localStorage.getItem('tomorrow-tasks')
+    };
+
+    const prevState = undoStack.pop();
+    redoStack.push(currentState);
+    applyState(prevState);
+}
+
+// Повтор действия
+function redo() {
+    if (redoStack.length === 0) return;
+
+    const currentState = {
+        today: localStorage.getItem('today-tasks'),
+        tomorrow: localStorage.getItem('tomorrow-tasks')
+    };
+
+    const nextState = redoStack.pop();
+    undoStack.push(currentState);
+    applyState(nextState);
+}
+
+// Применение состояния
+function applyState(state) {
+    localStorage.setItem('today-tasks', state.today);
+    localStorage.setItem('tomorrow-tasks', state.tomorrow);
+    loadTasks();
+}
+
+// Обработчик клавиш для undo/redo
+function handleUndoRedo(e) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+    }
+    else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        redo();
+    }
 }
 
 // Добавление новой задачи
@@ -86,12 +137,12 @@ function addTaskToList(task, list, options = {}) {
 
     const checkbox = document.createElement('img');
     checkbox.className = 'custom-checkbox';
-    checkbox.src = completed ? 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-true.svg' : 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-false.svg';
+    checkbox.src = completed ? 'img/checkbox-true.svg' : 'img/checkbox-false.svg';
     checkbox.alt = 'checkbox';
     checkbox.onclick = (e) => {
         e.stopPropagation();
         const isCompleted = checkbox.src.includes('checkbox-true.svg');
-        checkbox.src = isCompleted ? 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-false.svg' : 'file:///Users/dmitryermakov/Documents/git/study/task-planner/img/checkbox-true.svg';
+        checkbox.src = isCompleted ? 'img/checkbox-false.svg' : 'img/checkbox-true.svg';
         const taskText = li.querySelector('span');
         taskText.classList.toggle('completed', !isCompleted);
         saveTasks();
@@ -157,14 +208,14 @@ function addTaskToList(task, list, options = {}) {
 
     const moveBtn = document.createElement('button');
     moveBtn.className = 'move-btn';
-    moveBtn.textContent = list === 'today' ? 'На завтра' : 'На сегодня';
+    moveBtn.textContent = list === 'today' ? '⏩ Завтра' : '📆 На сегодня';
     moveBtn.onclick = (e) => {
         e.stopPropagation();
         moveTask(li);
     };
 
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '✖';
+    deleteBtn.textContent = '🗑️';
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
         li.remove();
@@ -181,7 +232,7 @@ function addTaskToList(task, list, options = {}) {
     li.appendChild(buttons);
 
     const targetList = document.getElementById(`${list}-list`);
-    completed ? targetList.prepend(li) : targetList.appendChild(li);
+    targetList.appendChild(li);
 }
 
 // Перемещение задачи между списками
@@ -203,7 +254,7 @@ function moveTask(task) {
 
 function updateMoveButton(li, newList) {
     const moveBtn = li.querySelector('.move-btn');
-    moveBtn.textContent = newList === 'today' ? 'На завтра' : 'На сегодня';
+    moveBtn.textContent = newList === 'today' ? '⏩ Завтра' : '📆 На сегодня';
 }
 
 // Очистка списка
@@ -214,30 +265,52 @@ function clearList(list) {
     saveTasks();
 }
 
-// Обновление дат
+// Обновление дат с новыми стилями
 function updateDates() {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    document.getElementById('today-date').textContent =
-        `${today.getDate()}, ${today.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
-    document.getElementById('tomorrow-date').textContent =
-        `${tomorrow.getDate()}, ${tomorrow.toLocaleDateString('ru-RU', { weekday: 'long' })}`;
+    // Форматирование даты для сегодня
+    updateDateElement(today, 'today-date');
+    updateDateElement(tomorrow, 'tomorrow-date');
+}
+
+// Создание HTML для даты с разными стилями
+function createDateHTML(day, weekday, isWeekend) {
+    const weekendClass = isWeekend ? ' weekend' : '';
+    return `<span class="weekday${weekendClass}">${day}, ${weekday}</span>`;
+}
+
+// Обновление элемента с датой
+function updateDateElement(date, elementId) {
+    const day = date.getDate();
+    const weekday = date.toLocaleDateString('ru-RU', { weekday: 'long' });
+    const isWeekend = [0, 6].includes(date.getDay()); // Проверяем день недели именно у переданной даты
+
+    const element = document.getElementById(elementId);
+    element.innerHTML = createDateHTML(day, weekday, isWeekend);
 }
 
 // Перенос задач на следующий день
 function shiftTasks() {
     const today = new Date();
-    const lastVisit = new Date(localStorage.getItem('last-visit') || 0);
+    const lastVisitStr = localStorage.getItem('last-visit');
+    const lastVisit = lastVisitStr ? new Date(lastVisitStr) : null;
 
-    if (today.toDateString() === lastVisit.toDateString()) return;
+    if (!lastVisit) {
+        localStorage.setItem('last-visit', today.toISOString());
+        return;
+    }
+
+    // Проверяем разницу в днях между последним посещением и текущим днем
+    const daysSinceLastVisit = Math.floor((today - lastVisit) / (1000 * 60 * 60 * 24));
+    if (daysSinceLastVisit < 1) return;
 
     // Архивирование выполненных задач
     const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-    const completedTasks = todayTasks.filter(task =>
-        task.completed || document.querySelector(`span:contains('${task.text}')`)?.classList.contains('completed')
-    );
+    const completedTasks = todayTasks.filter(task => task.completed);
+    const uncompletedTasks = todayTasks.filter(task => !task.completed);
 
     if (completedTasks.length > 0) {
         const archive = JSON.parse(localStorage.getItem('archive')) || [];
@@ -256,13 +329,13 @@ function shiftTasks() {
         localStorage.setItem('archive', JSON.stringify(filteredArchive));
     }
 
-    // Перенос задач
-    const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
-    localStorage.setItem('today-tasks', JSON.stringify(tomorrowTasks));
-    localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
-    localStorage.setItem('last-visit', today.toISOString());
+    // Перенос невыполненных задач на завтра
+    const existingTomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
+    const newTomorrowTasks = uncompletedTasks.concat(existingTomorrowTasks);
 
-    loadTasks();
+    localStorage.setItem('tomorrow-tasks', JSON.stringify(newTomorrowTasks));
+    localStorage.setItem('today-tasks', JSON.stringify([]));
+    localStorage.setItem('last-visit', today.toISOString());
 }
 
 // Drag and Drop
@@ -329,19 +402,6 @@ function drop(event) {
     }
 }
 
-// Undo/Redo
-function handleUndo(e) {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
-        const state = history.pop();
-        if (state) {
-            localStorage.setItem('today-tasks', state.today);
-            localStorage.setItem('tomorrow-tasks', state.tomorrow);
-            loadTasks();
-        }
-    }
-}
-
 // Архив
 document.getElementById('archive-btn').addEventListener('click', showArchive);
 document.querySelector('.close').addEventListener('click', () => {
@@ -379,7 +439,7 @@ function showArchive() {
 }
 
 // Инициализация
-document.addEventListener('keydown', handleUndo);
+document.addEventListener('keydown', handleUndoRedo);
 shiftTasks();
 updateDates();
 loadTasks();

@@ -1,16 +1,16 @@
 :root {
-    --primary-bg: #20232b;
+    --primary-bg: #131519;
     --secondary-bg: #303743;
-    --hover-bg: #2C2F36;
+    --hover-bg: #1f2126;
     --highlight-bg: #422c2c;
-    --border-color: #ff5722;
+    --border-color: #FA2C37;
     --text-color: white;
-    --muted-text: rgba(255, 255, 255, 0.2);
-    --highlight-text: #ff5722;
+    --muted-text: rgba(255, 255, 255, 0.15);
+    --highlight-text: #FA2C37;
     --modal-bg: rgba(0, 0, 0, 0.5);
     --button-bg: #2c303b;
     --button-hover-bg: #303743;
-    --completed-text: #ff5722;
+    --completed-text: #FA2C37;
 }
 
 body {
@@ -42,7 +42,7 @@ body {
 h2 {
     display: flex;
     justify-content: left;
-    gap: 10px;
+    gap: 16px;
     align-items: center;
     margin-bottom: 16px;
     font-size: 32px;
@@ -88,8 +88,8 @@ li.dragging {
 li.placeholder {
     background: var(--hover-bg);
     border: 2px dashed var(--muted-text);
-    height: 26px;
-    margin: 6px 0;
+    height: 33px;
+    margin: 0px;
     transition: all 0.3s ease;
 }
 
@@ -121,20 +121,20 @@ span {
 
 .buttons {
     display: flex;
-    gap: 0px;
+    gap: 12px;
     opacity: 0;
     transition: opacity 0.2s ease;
     margin-left: auto;
 }
 
 button {
-    font-family: Futura, sans-serif;
+    /* font-family: Futura, sans-serif; */
     font-size: 16px;
     color: var(--text-color);
     background: transparent;
     border: none;
     border-radius: 7px;
-    padding: 0px 5px;
+    padding: 0px;
     cursor: pointer;
     transition: background 0.2s ease, transform 0.2s ease;
     display: inline-flex;
@@ -271,4 +271,14 @@ textarea:active {
 input[type="checkbox"] {
     display: none;
     /* Скрываем стандартный чекбокс */
+}
+
+.weekday {
+    font-size: 16px;
+    color: var(--muted-text);
+}
+
+.weekday.weekend {
+    color: var(--highlight-text);
+    opacity: .75;
 }
