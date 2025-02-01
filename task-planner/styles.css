@@ -1,20 +1,32 @@
 :root {
-    --primary-bg: #131519;
-    --secondary-bg: #303743;
-    --hover-bg: #1f2126;
-    --highlight-bg: #422c2c;
-    --border-color: #FA2C37;
-    --text-color: white;
-    --muted-text: rgba(255, 255, 255, 0.15);
-    --highlight-text: #FA2C37;
-    --modal-bg: rgba(0, 0, 0, 0.5);
-    --button-bg: #2c303b;
-    --button-hover-bg: #303743;
-    --completed-text: #FA2C37;
+    --color-dark-gray: #131519;
+    --color-gray: #303743;
+    --color-darker-gray: #1f2126;
+    --color-dark-red: #422c2c;
+    --color-red: #FA2C37;
+    --color-white: white;
+    --color-white-transparent: rgba(255, 255, 255, 0.15);
+    --color-black-transparent: rgba(0, 0, 0, 0.5);
+    --color-gray-dark: #2c303b;
+
+    --primary-bg: var(--color-dark-gray);
+    --secondary-bg: var(--color-gray);
+    --hover-bg: var(--color-darker-gray);
+    --highlight-bg: var(--color-dark-red);
+    --border-color: var(--color-red);
+    --text-color: var(--color-white);
+    --muted-text: var(--color-white-transparent);
+    --highlight-text: var(--color-red);
+    --modal-bg: var(--color-black-transparent);
+    --button-bg: var(--color-gray-dark);
+    --button-hover-bg: var(--color-gray);
+    --completed-text: var(--color-red);
 }
 
 body {
-    font-family: Futura, sans-serif;
+    font-family: "Nunito Sans", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
     background-color: var(--primary-bg);
     color: var(--text-color);
     margin: 0;
@@ -46,6 +58,7 @@ h2 {
     align-items: center;
     margin-bottom: 16px;
     font-size: 32px;
+    font-weight: 800;
 }
 
 ul {
@@ -61,7 +74,7 @@ li {
     border-radius: 10px;
     display: flex;
     align-items: flex-start;
-    align-items: center;
+    align-items: start;
     gap: 6px;
     cursor: grab;
     transition: all 0.3s ease;
@@ -125,10 +138,10 @@ span {
     opacity: 0;
     transition: opacity 0.2s ease;
     margin-left: auto;
+    height: 21px;
 }
 
 button {
-    /* font-family: Futura, sans-serif; */
     font-size: 16px;
     color: var(--text-color);
     background: transparent;
@@ -161,7 +174,9 @@ textarea {
     resize: none;
     background: transparent;
     color: var(--text-color);
-    font-family: Futura, sans-serif;
+    font-family: "Nunito Sans", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
     font-size: 16px;
     height: 21px;
     padding: 0;
@@ -208,7 +223,9 @@ textarea:active {
 
 .modal-content {
     background-color: var(--primary-bg);
-    margin: 20% auto;
+    margin: 15vh auto;
+    max-height: 70vh;
+    overflow: auto;
     padding: 24px;
     width: 80%;
     max-width: 800px;
@@ -232,13 +249,13 @@ textarea:active {
 .archive-day h3 {
     color: var(--text-color);
     margin: 0 0 12px 0;
-    font-size: 20px;
+    font-size: 24px;
+    font-weight: 800;
 }
 
 .archive-task {
-    padding: 4px;
+    padding: 4px 4px 4px 24px;
     margin: 4px 0;
-    color: var(--muted-text);
 }
 
 .archive-empty {
@@ -252,8 +269,7 @@ textarea:active {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* width: 20px; */
-    height: 20px;
+    height: 21px;
     margin-right: 4px;
 }
 

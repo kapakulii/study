@@ -286,7 +286,7 @@ function createDateHTML(day, weekday, isWeekend) {
 function updateDateElement(date, elementId) {
     const day = date.getDate();
     const weekday = date.toLocaleDateString('ru-RU', { weekday: 'long' });
-    const isWeekend = [0, 6].includes(date.getDay()); // Проверяем день недели именно у переданной даты
+    const isWeekend = [0, 6].includes(date.getDay());
 
     const element = document.getElementById(elementId);
     element.innerHTML = createDateHTML(day, weekday, isWeekend);
@@ -303,20 +303,24 @@ function shiftTasks() {
         return;
     }
 
-    // Проверяем разницу в днях между последним посещением и текущим днем
     const daysSinceLastVisit = Math.floor((today - lastVisit) / (1000 * 60 * 60 * 24));
     if (daysSinceLastVisit < 1) return;
 
-    // Архивирование выполненных задач
+    // Собираем выполненные задачи из обоих списков
     const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-    const completedTasks = todayTasks.filter(task => task.completed);
-    const uncompletedTasks = todayTasks.filter(task => !task.completed);
+    const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
 
-    if (completedTasks.length > 0) {
+    const allCompletedTasks = [
+        ...todayTasks.filter(task => task.completed),
+        ...tomorrowTasks.filter(task => task.completed)
+    ];
+
+    // Архивирование выполненных задач
+    if (allCompletedTasks.length > 0) {
         const archive = JSON.parse(localStorage.getItem('archive')) || [];
         archive.push({
             date: lastVisit.toISOString(),
-            tasks: completedTasks
+            tasks: allCompletedTasks
         });
 
         // Очистка архива старше месяца
@@ -329,12 +333,15 @@ function shiftTasks() {
         localStorage.setItem('archive', JSON.stringify(filteredArchive));
     }
 
-    // Перенос невыполненных задач на завтра
-    const existingTomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
-    const newTomorrowTasks = uncompletedTasks.concat(existingTomorrowTasks);
+    // Формируем новые списки задач
+    const newTodayTasks = [
+        ...todayTasks.filter(task => !task.completed), // Оставляем невыполненные сегодняшние
+        ...tomorrowTasks.filter(task => !task.completed) // Добавляем невыполненные завтрашние
+    ];
 
-    localStorage.setItem('tomorrow-tasks', JSON.stringify(newTomorrowTasks));
-    localStorage.setItem('today-tasks', JSON.stringify([]));
+    // Обновляем хранилище
+    localStorage.setItem('today-tasks', JSON.stringify(newTodayTasks));
+    localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
     localStorage.setItem('last-visit', today.toISOString());
 }
 
@@ -419,20 +426,23 @@ function showArchive() {
         emptyMessage.textContent = 'Сейчас архив пуст. Выполненные задачи перемещаются сюда на следующий день';
         archiveList.appendChild(emptyMessage);
     } else {
-        archive.forEach(entry => {
-            const dayElement = document.createElement('div');
-            dayElement.className = 'archive-day';
-            dayElement.innerHTML = `<h3>${new Date(entry.date).toLocaleDateString('ru-RU')}</h3>`;
+        // Сортируем архив по дате в обратном порядке (новые сверху)
+        archive
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .forEach(entry => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'archive-day';
+                dayElement.innerHTML = `<h3>${new Date(entry.date).toLocaleDateString('ru-RU')}</h3>`;
 
-            entry.tasks.forEach(task => {
-                const taskElement = document.createElement('div');
-                taskElement.className = 'archive-task';
-                taskElement.textContent = task.text;
-                dayElement.appendChild(taskElement);
+                entry.tasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = 'archive-task';
+                    taskElement.textContent = task.text;
+                    dayElement.appendChild(taskElement);
+                });
+
+                archiveList.appendChild(dayElement);
             });
-
-            archiveList.appendChild(dayElement);
-        });
     }
 
     document.getElementById('archive-modal').style.display = 'block';
