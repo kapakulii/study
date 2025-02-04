@@ -34,6 +34,10 @@ body {
     font-size: 16px;
 }
 
+a {
+    color: var(--color-red);
+}
+
 .pagewrapper {
     max-width: 768px;
     display: flex;
@@ -59,6 +63,7 @@ h2 {
     margin-bottom: 16px;
     font-size: 32px;
     font-weight: 800;
+    padding-right: 6px;
 }
 
 ul {
@@ -178,7 +183,7 @@ textarea {
     font-optical-sizing: auto;
     font-weight: 400;
     font-size: 16px;
-    height: 21px;
+    height: 22px;
     padding: 0;
 }
 
@@ -226,7 +231,7 @@ textarea:active {
     margin: 15vh auto;
     max-height: 70vh;
     overflow: auto;
-    padding: 24px;
+    padding: 28px;
     width: 80%;
     max-width: 800px;
     border-radius: 8px;
@@ -239,6 +244,10 @@ textarea:active {
     font-size: 32px;
     font-weight: bold;
     cursor: pointer;
+    padding: 16px;
+    position: absolute;
+    top: -4px;
+    right: 8px;
 }
 
 /* Archive tasks */
@@ -246,7 +255,7 @@ textarea:active {
     margin-bottom: 24px;
 }
 
-.archive-day h3 {
+h3 {
     color: var(--text-color);
     margin: 0 0 12px 0;
     font-size: 24px;
@@ -297,4 +306,56 @@ input[type="checkbox"] {
 .weekday.weekend {
     color: var(--highlight-text);
     opacity: .75;
+}
+
+/* Рядом с существующими стилями для .archive-btn */
+.about-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    color: var(--muted-text);
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.about-content {
+    padding: 20px;
+}
+
+.about-content ul {
+    margin: 15px 0;
+    padding-left: 25px;
+}
+
+.about-content li {
+    margin: 10px 0;
+}
+
+.logo-hflex {
+    display: flex;
+    gap: 16px;
+
+}
+
+.logo-vflex {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+
+.logo-vflex p,
+h3 {
+    margin: 0;
+}
+
+.logo-vflex p {
+    color: var(--muted-text);
+}
+
+.logo-small {
+    width: 80px;
+    height: auto;
 }

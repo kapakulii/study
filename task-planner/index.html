@@ -4,7 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.25">
-    <title>Task Manager</title>
+    <title>2Day — сервис для планирования задач на два дня</title>
+    <meta name="description"
+        content="Минималистичный менеджер задач для продуктивной работы и планирования. Освободи голову от лишних мыслей и сосредоточься на делах, которые важны прямо сейчас.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="2Day — сервис для планирования задач на два дня">
+    <meta property="og:description"
+        content="Минималистичный менеджер задач для продуктивной работы и планирования. Освободи голову от лишних мыслей и сосредоточься на делах, которые важны прямо сейчас.">
+    <meta property="og:image" content="/og.png">
+    <meta property="og:url" content="https://plan2day.ru">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+
     <link rel="stylesheet" href="styles.css">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -44,6 +56,34 @@
         </div>
     </div>
 
+    <!-- Добавьте это перед кнопкой архива -->
+    <button href="#" id="about-btn" class="about-btn">Что это такое?</button>
+
+    <!-- Добавьте новое модальное окно -->
+    <div id="about-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="logo-hflex">
+                <img src="android-chrome-192x192.png" class="logo-small">
+                <div class="logo-vflex">
+                    <h3>2day — планировщик задач на 2 дня</h3>
+                    <p>Версия: 0.9.0204</p>
+                </div>
+            </div>
+            <p><b>Как работать?</b><br> Выпиши все задачи, которые собираешься сделать сегодня. Не держи их в голове —
+                записывай даже самые незначительные. Это поможет освободить разум от лишних мыслей и сосредоточиться на
+                действительно важных делах.
+            </p>
+            <p><b>Что дальше?</b><br>Выполняй задачи последовательно. Если их станет слишком много, перенеси часть на ⏩
+                завтра. На следующий день выполненные задачи уйдут в архив, а невыполненные останутся в списке. </p>
+            <p><b>Это безопасно?</b><br>Задачи хранятся локально в вашем браузере. Благодаря этому вы можете
+                пользоваться сервисом бесплатно и без регистрации.
+            </p>
+            <p><b>Связаться с автором</b><br><a href="https://t.me/kapakulii">t.me/kapakulii</a>
+            </p>
+        </div>
+    </div>
+
     <button id="archive-btn" class="archive-btn">Архив</button>
 
     <div id="archive-modal" class="modal">
@@ -52,8 +92,28 @@
             <div id="archive-list"></div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
+
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function (m, e, t, r, i, k, a) {
+        m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
+        m[i].l = 1 * new Date();
+        for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+        k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
+    })
+        (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+    ym(99779767, "init", {
+        clickmap: true,
+        trackLinks: true,
+        accurateTrackBounce: true
+    });
+</script>
+<noscript>
+    <div><img src="https://mc.yandex.ru/watch/99779767" style="position:absolute; left:-9999px;" alt="" /></div>
+</noscript>
+<!-- /Yandex.Metrika counter -->
 
 </html>

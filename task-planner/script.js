@@ -294,55 +294,87 @@ function updateDateElement(date, elementId) {
 
 // Перенос задач на следующий день
 function shiftTasks() {
-    const today = new Date();
+    const now = new Date();
+
+    // Нормализация времени до 00:00:00
+    const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Получение последнего визита с нормализацией времени
     const lastVisitStr = localStorage.getItem('last-visit');
-    const lastVisit = lastVisitStr ? new Date(lastVisitStr) : null;
+    let lastVisitDate = lastVisitStr ? new Date(lastVisitStr) : null;
 
-    if (!lastVisit) {
-        localStorage.setItem('last-visit', today.toISOString());
-        return;
-    }
-
-    const daysSinceLastVisit = Math.floor((today - lastVisit) / (1000 * 60 * 60 * 24));
-    if (daysSinceLastVisit < 1) return;
-
-    // Собираем выполненные задачи из обоих списков
-    const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
-    const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
-
-    const allCompletedTasks = [
-        ...todayTasks.filter(task => task.completed),
-        ...tomorrowTasks.filter(task => task.completed)
-    ];
-
-    // Архивирование выполненных задач
-    if (allCompletedTasks.length > 0) {
-        const archive = JSON.parse(localStorage.getItem('archive')) || [];
-        archive.push({
-            date: lastVisit.toISOString(),
-            tasks: allCompletedTasks
-        });
-
-        // Очистка архива старше месяца
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const filteredArchive = archive.filter(entry =>
-            new Date(entry.date) > oneMonthAgo
+    if (lastVisitDate) {
+        lastVisitDate = new Date(
+            lastVisitDate.getFullYear(),
+            lastVisitDate.getMonth(),
+            lastVisitDate.getDate()
         );
-
-        localStorage.setItem('archive', JSON.stringify(filteredArchive));
+    } else {
+        // Если первый вход, установить вчерашнюю дату для принудительного переноса
+        lastVisitDate = new Date(currentDate);
+        lastVisitDate.setDate(currentDate.getDate() - 1);
     }
 
-    // Формируем новые списки задач
-    const newTodayTasks = [
-        ...todayTasks.filter(task => !task.completed), // Оставляем невыполненные сегодняшние
-        ...tomorrowTasks.filter(task => !task.completed) // Добавляем невыполненные завтрашние
-    ];
+    // Проверка наступления нового дня
+    if (currentDate > lastVisitDate) {
+        // Переносим невыполненные задачи
+        const todayTasks = JSON.parse(localStorage.getItem('today-tasks')) || [];
+        const tomorrowTasks = JSON.parse(localStorage.getItem('tomorrow-tasks')) || [];
 
-    // Обновляем хранилище
-    localStorage.setItem('today-tasks', JSON.stringify(newTodayTasks));
-    localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
-    localStorage.setItem('last-visit', today.toISOString());
+        // Архивирование выполненных задач
+        const allCompleted = [
+            ...todayTasks.filter(task => task.completed),
+            ...tomorrowTasks.filter(task => task.completed)
+        ];
+
+        if (allCompleted.length > 0) {
+            const archive = JSON.parse(localStorage.getItem('archive')) || [];
+            archive.push({
+                date: lastVisitDate.toISOString(),
+                tasks: allCompleted
+            });
+
+            // Очистка архива старше 30 дней
+            const monthAgo = new Date(currentDate);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            localStorage.setItem('archive', JSON.stringify(
+                archive.filter(entry => new Date(entry.date) > monthAgo)
+            ));
+        }
+
+        // Обновление списков
+        localStorage.setItem('today-tasks', JSON.stringify([
+            ...todayTasks.filter(task => !task.completed),
+            ...tomorrowTasks.filter(task => !task.completed)
+        ]));
+
+        localStorage.setItem('tomorrow-tasks', JSON.stringify([]));
+    }
+
+    // Всегда обновляем метку последнего визита на текущую дату 00:00
+    localStorage.setItem('last-visit', currentDate.toISOString());
+
+    // Запланировать проверку в полночь
+    scheduleMidnightCheck();
+}
+
+//Обновление в полночь
+function scheduleMidnightCheck() {
+    const now = new Date();
+    const night = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1, // Завтра
+        0, 0, 0 // 00:00:00
+    );
+
+    const timeToMidnight = night.getTime() - now.getTime();
+
+    setTimeout(() => {
+        shiftTasks();
+        loadTasks(); // Обновить интерфейс
+        scheduleMidnightCheck(); // Повторно запланировать
+    }, timeToMidnight);
 }
 
 // Drag and Drop
@@ -369,6 +401,13 @@ function dragEnd() {
         placeholder.remove();
         placeholder = null;
     }
+
+    // Сброс hover-состояний
+    const container = document.querySelector('.task-container');
+    container.style.pointerEvents = 'none';
+    setTimeout(() => {
+        container.style.pointerEvents = '';
+    }, 0);
 }
 
 function allowDrop(event) {
@@ -448,8 +487,28 @@ function showArchive() {
     document.getElementById('archive-modal').style.display = 'block';
 }
 
+// В конце файла после обработчика архива
+document.getElementById('about-btn').addEventListener('click', showAbout);
+document.querySelectorAll('.close').forEach(btn => {
+    btn.addEventListener('click', () => {
+        btn.closest('.modal').style.display = 'none';
+    });
+});
+
+function showAbout() {
+    document.getElementById('about-modal').style.display = 'block';
+}
+
+// Закрытие по клику вне окна
+window.onclick = function (event) {
+    if (event.target.className === 'modal') {
+        event.target.style.display = 'none';
+    }
+}
+
 // Инициализация
 document.addEventListener('keydown', handleUndoRedo);
 shiftTasks();
 updateDates();
 loadTasks();
+scheduleMidnightCheck();

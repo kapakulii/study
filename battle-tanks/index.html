@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Battle Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: lightblue;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .button {
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu">
+        <h1>Выберите режим игры</h1>
+        <button class="button" onclick="startGame(1)">Режим 1x1</button>
+        <button class="button" onclick="startGame(2)">Режим 2x2</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = 900;
+        canvas.height = 600;
+
+        let terrain;
+        let tanks = [];
+        let turn = 0;
+        let projectile = null;
+        let charge = 0;
+        let charging = false;
+        let gameOver = false;
+        let winner = "";
+        let mode = 1;
+
+        function generateTerrain(width, height) {
+            let terrain = new Array(width).fill(0);
+            let baseHeight = height * 0.7;
+            let noise = Array.from({ length: width }, () => Math.random() * 10 - 10);
+            terrain[0] = baseHeight + noise[0];
+
+            let randomFactor = Math.random() * (0.03 - 0.01) + 0.01;
+
+            for (let i = 1; i < width; i++) {
+                terrain[i] = Math.max(baseHeight + noise[i] + Math.sin(i * randomFactor) * 60, baseHeight * 0.4);
+            }
+            return terrain;
+        }
+
+        function drawTerrain() {
+            ctx.fillStyle = "green";
+            ctx.beginPath();
+            ctx.moveTo(0, terrain[0]);
+            for (let i = 1; i < terrain.length; i++) {
+                ctx.lineTo(i, terrain[i]);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.fill();
+        }
+
+        function drawTank(tank) {
+            if (tank.health <= 0) return;  // Танк с нулевым здоровьем не рисуется
+            ctx.fillStyle = tank.color;
+            ctx.fillRect(tank.x - 20, tank.y, 40, 20);
+            ctx.fillStyle = "black";
+            let barrelX = tank.x + Math.cos(tank.angle * Math.PI / 180) * 30;
+            let barrelY = tank.y - Math.sin(tank.angle * Math.PI / 180) * 30;
+            ctx.beginPath();
+            ctx.moveTo(tank.x, tank.y);
+            ctx.lineTo(barrelX, barrelY);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Полоска здоровья
+            ctx.fillStyle = "red";
+            ctx.fillRect(tank.x - 20, tank.y - 25, 40, 5);
+            ctx.fillStyle = "green";
+            ctx.fillRect(tank.x - 20, tank.y - 25, (40 * tank.health) / 100, 5);
+
+            // Указатель активного танка
+            if (tanks[turn] === tank) {
+                ctx.fillStyle = "yellow";
+                ctx.beginPath();
+                ctx.moveTo(tank.x, tank.y - 35);
+                ctx.lineTo(tank.x - 10, tank.y - 20);
+                ctx.lineTo(tank.x + 10, tank.y - 20);
+                ctx.fill();
+            }
+        }
+
+        function nextTurn() {
+            do {
+                turn = (turn + 1) % tanks.length;
+            } while (tanks[turn].health <= 0);  // Пропускаем танки с нулевым здоровьем
+        }
+
+        function checkHit(proj, tank) {
+            return (
+                Math.abs(proj.x - tank.x) < 25 &&
+                Math.abs(proj.y - tank.y) < 15
+            );
+        }
+
+        function drawProjectile() {
+            if (projectile) {
+                ctx.fillStyle = "black";
+                ctx.beginPath();
+                ctx.arc(projectile.x, projectile.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateProjectile() {
+            if (projectile) {
+                projectile.time += 0.05;
+                let vx = Math.cos(projectile.angle * Math.PI / 180) * projectile.power;
+                let vy = Math.sin(projectile.angle * Math.PI / 180) * projectile.power - 6 * projectile.time;
+                projectile.x += vx * 0.5;
+                projectile.y -= vy * 0.5;
+
+                if (projectile.x < 0 || projectile.x > canvas.width || projectile.y >= terrain[Math.floor(projectile.x)]) {
+                    if (projectile.y >= terrain[Math.floor(projectile.x)]) {
+                        destroyTerrain(Math.floor(projectile.x), 20);  // Уничтожаем землю вокруг точки попадания
+                    }
+                    projectile = null;
+                    nextTurn();  // Переход хода
+                } else {
+                    const hitTank = tanks.find(tank => tank.health > 0 && checkHit(projectile, tank));
+                    if (hitTank) {
+                        if (projectile.team !== hitTank.team) {
+                            hitTank.health = Math.max(0, hitTank.health - 20);
+                            if (hitTank.health === 0) {
+                                const aliveTeams = new Set(tanks.filter(t => t.health > 0).map(t => t.team));
+                                if (aliveTeams.size === 1) {
+                                    gameOver = true;
+                                    winner = `Победила команда ${projectile.team}!`;
+                                }
+                            }
+                        }
+                        projectile = null;
+                        nextTurn();  // Переход хода
+                    }
+                }
+            }
+        }
+
+        function destroyTerrain(x, radius) {
+            for (let i = Math.max(0, x - radius); i < Math.min(canvas.width, x + radius); i++) {
+                let distance = Math.abs(i - x);
+                let reduction = Math.sqrt(radius * radius - distance * distance);  // Круглый участок разрушения
+                terrain[i] = Math.min(terrain[i] + reduction, canvas.height);
+            }
+        }
+
+        function shoot() {
+            let tank = tanks[turn];
+            if (tank.health > 0 && !projectile) {  // Проверка здоровья танка
+                projectile = {
+                    x: tank.x + Math.cos(tank.angle * Math.PI / 180) * 30,
+                    y: tank.y - Math.sin(tank.angle * Math.PI / 180) * 30,
+                    angle: tank.angle,
+                    time: 0,
+                    power: charge / 5 + 15, // Сила выстрела зависит от заряда
+                    team: tank.team
+                };
+                charge = 0;
+            }
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (!gameOver) {
+                if (event.key === "ArrowUp") {
+                    tanks[turn].angle = Math.min(tanks[turn].angle + 2, 180);
+                } else if (event.key === "ArrowDown") {
+                    tanks[turn].angle = Math.max(tanks[turn].angle - 2, 0);
+                } else if (event.key === " ") {
+                    charging = true;
+                }
+            }
+        });
+
+        document.addEventListener("keyup", (event) => {
+            if (event.key === " ") {
+                charging = false;
+                if (tanks[turn].health > 0) {  // Проверка здоровья перед выстрелом
+                    shoot();
+                }
+            }
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTerrain();
+            tanks.forEach(drawTank);
+            updateProjectile();
+            drawProjectile();
+            if (charging) {
+                charge = Math.min(charge + 1, 100);
+            }
+            ctx.fillStyle = "gray";
+            ctx.fillRect(350, 10, 100, 10);
+            ctx.fillStyle = "yellow";
+            ctx.fillRect(350, 10, charge, 10);
+
+            if (gameOver) {
+                ctx.fillStyle = "black";
+                ctx.font = "20px Arial";
+                ctx.fillText(winner, canvas.width / 2 - 80, 50);
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame(selectedMode) {
+            mode = selectedMode;
+            document.getElementById("menu").style.display = "none";
+            terrain = generateTerrain(canvas.width, canvas.height);
+            tanks = mode === 1
+                ? [
+                    { x: 100, y: terrain[100] - 30, angle: 45, health: 100, color: "blue", team: 1 },
+                    { x: 700, y: terrain[700] - 30, angle: 135, health: 100, color: "red", team: 2 }
+                ]
+                : [
+                    { x: 100, y: terrain[100] - 30, angle: 45, health: 100, color: "blue", team: 1 },
+                    { x: 200, y: terrain[200] - 30, angle: 45, health: 100, color: "blue", team: 1 },
+                    { x: 600, y: terrain[600] - 30, angle: 135, health: 100, color: "red", team: 2 },
+                    { x: 700, y: terrain[700] - 30, angle: 135, health: 100, color: "red", team: 2 }
+                ];
+            gameOver = false;
+            winner = "";
+            turn = 0;
+            projectile = null;
+            charge = 0;
+            charging = false;
+            gameLoop();
+        }
+    </script>
+</body>
+
+</html>
