@@ -351,11 +351,27 @@ h3 {
     margin: 0;
 }
 
+.logo-vflex h3 {
+    line-height: 125%;
+}
+
 .logo-vflex p {
     color: var(--muted-text);
 }
 
 .logo-small {
     width: 80px;
-    height: auto;
+    height: 80px;
+}
+
+@media (max-width: 768px) {
+    .move-btn {
+        display: none !important;
+    }
+
+    .modal-content {
+        margin: 5% 5%;
+        max-height: 75vh;
+        width: auto;
+    }
 }

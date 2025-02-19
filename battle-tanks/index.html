@@ -22,6 +22,9 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
         }
 
         .button {
@@ -30,12 +33,71 @@
             cursor: pointer;
             margin: 10px;
         }
+
+        .color-picker {
+            margin: 10px;
+            display: inline-block;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            display: inline-block;
+            cursor: pointer;
+            border: 4px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: black;
+        }
+
+        .color-label {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-container {
+            margin: 15px;
+            font-size: 16px;
+        }
     </style>
 </head>
 
 <body>
     <div id="menu">
         <h1>Выберите режим игры</h1>
+
+        <div class="color-picker">
+            <div class="color-label">Цвет команды 1:</div>
+            <div class="color-option" style="background: blue" onclick="selectColor(1, 'blue')"></div>
+            <div class="color-option" style="background: red" onclick="selectColor(1, 'red')"></div>
+            <div class="color-option" style="background: #b39800" onclick="selectColor(1, '#b39800')">
+            </div>
+            <div class="color-option" style="background: purple" onclick="selectColor(1, 'purple')"></div>
+        </div>
+
+        <div class="color-picker">
+            <div class="color-label">Цвет команды 2:</div>
+            <div class="color-option" style="background: blue" onclick="selectColor(2, 'blue')"></div>
+            <div class="color-option" style="background: red" onclick="selectColor(2, 'red')"></div>
+            <div class="color-option" style="background: #b39800" onclick="selectColor(2, '#b39800')">
+            </div>
+            <div class="color-option" style="background: purple" onclick="selectColor(2, 'purple')"></div>
+        </div>
+
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" id="manualPlacementCheckbox"> Ручная расстановка танков
+            </label>
+        </div>
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" id="aiControlCheckbox"> ИИ управляет второй командой
+            </label>
+        </div>
+
+        <br>
         <button class="button" onclick="startGame(1)">Режим 1x1</button>
         <button class="button" onclick="startGame(2)">Режим 2x2</button>
     </div>
@@ -43,7 +105,7 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = 900;
+        canvas.width = 1000;
         canvas.height = 600;
 
         let terrain;
@@ -55,6 +117,30 @@
         let gameOver = false;
         let winner = "";
         let mode = 1;
+        let team1Color = "blue";
+        let team2Color = "red";
+        let isPlacingTanks = false;
+        let currentPlacingTeam = 1;
+        let placedTanksCount = 0;
+        let totalTanksToPlace = 0;
+        let aiControlEnabled = false;
+
+        function selectColor(team, color) {
+            // Убираем выделение у всех элементов выбранной команды
+            document.querySelectorAll(`.color-picker:nth-of-type(${team}) .color-option`).forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // Добавляем выделение выбранному цвету
+            event.target.classList.add('selected');
+
+            // Сохраняем выбранный цвет
+            if (team === 1) {
+                team1Color = color;
+            } else {
+                team2Color = color;
+            }
+        }
 
         function generateTerrain(width, height) {
             let terrain = new Array(width).fill(0);
@@ -83,7 +169,7 @@
         }
 
         function drawTank(tank) {
-            if (tank.health <= 0) return;  // Танк с нулевым здоровьем не рисуется
+            if (tank.health <= 0) return;
             ctx.fillStyle = tank.color;
             ctx.fillRect(tank.x - 20, tank.y, 40, 20);
             ctx.fillStyle = "black";
@@ -95,13 +181,11 @@
             ctx.lineWidth = 3;
             ctx.stroke();
 
-            // Полоска здоровья
             ctx.fillStyle = "red";
             ctx.fillRect(tank.x - 20, tank.y - 25, 40, 5);
             ctx.fillStyle = "green";
             ctx.fillRect(tank.x - 20, tank.y - 25, (40 * tank.health) / 100, 5);
 
-            // Указатель активного танка
             if (tanks[turn] === tank) {
                 ctx.fillStyle = "yellow";
                 ctx.beginPath();
@@ -115,7 +199,7 @@
         function nextTurn() {
             do {
                 turn = (turn + 1) % tanks.length;
-            } while (tanks[turn].health <= 0);  // Пропускаем танки с нулевым здоровьем
+            } while (tanks[turn].health <= 0);
         }
 
         function checkHit(proj, tank) {
@@ -134,6 +218,87 @@
             }
         }
 
+        // Добавляем новые вспомогательные функции
+        function calculateTrajectory(startX, startY, targetX, targetY, power) {
+            const trajectory = [];
+            let x = startX;
+            let y = startY;
+            let vx = (targetX - startX) / 20; // нормализуем горизонтальную скорость
+            let vy = (targetY - startY) / 20; // начальная вертикальная скорость
+
+            while (x <= canvas.width && y >= 0) {
+                trajectory.push({ x, y });
+                x += vx;
+                y += vy;
+                vy -= 0.5; // добавляем гравитацию
+
+                // проверяем столкновение с землей
+                if (y >= terrain[Math.floor(x)]) {
+                    break;
+                }
+            }
+            return trajectory;
+        }
+
+        function findBestShootingPosition(currentTank, targetTank) {
+            const terrainHeight = terrain[Math.floor(currentTank.x)];
+            const angleStep = 5;
+            let bestAngle = currentTank.angle;
+            let bestHitProbability = 0;
+
+            for (let angle = -45; angle <= 45; angle += angleStep) {
+                const trajectory = calculateTrajectory(
+                    currentTank.x + Math.cos(currentTank.angle * Math.PI / 180) * 30,
+                    currentTank.y - Math.sin(currentTank.angle * Math.PI / 180) * 30,
+                    targetTank.x,
+                    targetTank.y,
+                    25 // базовая сила выстрела
+                );
+
+                let hitProbability = 0;
+                trajectory.forEach(point => {
+                    if (point.y >= terrain[Math.floor(point.x)]) {
+                        hitProbability = 0;
+                        return;
+                    }
+
+                    const distanceToTarget = Math.hypot(point.x - targetTank.x, point.y - targetTank.y);
+                    if (distanceToTarget < 20) hitProbability = 1;
+                    else if (distanceToTarget < 40) hitProbability = 0.5;
+                });
+
+                if (hitProbability > bestHitProbability) {
+                    bestHitProbability = hitProbability;
+                    bestAngle = currentTank.angle + angle;
+                }
+            }
+
+            return { angle: bestAngle, probability: bestHitProbability };
+        }
+
+        // Добавляем логику ИИ в gameLoop
+        function updateAI() {
+            const currentTank = tanks[turn];
+            const enemyTanks = tanks.filter(tank => tank.team === 1 && tank.health > 0);
+            if (enemyTanks.length === 0) return;
+
+            const targetTank = enemyTanks.reduce((closest, tank) => {
+                const distance = Math.hypot(tank.x - currentTank.x, tank.y - currentTank.y);
+                return distance < Math.hypot(closest.x - currentTank.x, closest.y - currentTank.y) ? tank : closest;
+            }, enemyTanks[0]);
+
+            const shootingData = findBestShootingPosition(currentTank, targetTank);
+            currentTank.angle = shootingData.angle;
+
+            const distance = Math.hypot(targetTank.x - currentTank.x, targetTank.y - currentTank.y);
+            if (shootingData.probability > 0.3 && distance < 400) {
+                shoot(); // ИИ снова управляет стрельбой
+            } else if (distance > 600) {
+                const angleToTarget = Math.atan2(targetTank.y - currentTank.y, targetTank.x - currentTank.x);
+                currentTank.angle = (angleToTarget * 180 / Math.PI) + 90;
+            }
+        }
+
         function updateProjectile() {
             if (projectile) {
                 projectile.time += 0.05;
@@ -144,10 +309,10 @@
 
                 if (projectile.x < 0 || projectile.x > canvas.width || projectile.y >= terrain[Math.floor(projectile.x)]) {
                     if (projectile.y >= terrain[Math.floor(projectile.x)]) {
-                        destroyTerrain(Math.floor(projectile.x), 20);  // Уничтожаем землю вокруг точки попадания
+                        destroyTerrain(Math.floor(projectile.x), 20);
                     }
                     projectile = null;
-                    nextTurn();  // Переход хода
+                    nextTurn();
                 } else {
                     const hitTank = tanks.find(tank => tank.health > 0 && checkHit(projectile, tank));
                     if (hitTank) {
@@ -162,7 +327,7 @@
                             }
                         }
                         projectile = null;
-                        nextTurn();  // Переход хода
+                        nextTurn();
                     }
                 }
             }
@@ -171,20 +336,20 @@
         function destroyTerrain(x, radius) {
             for (let i = Math.max(0, x - radius); i < Math.min(canvas.width, x + radius); i++) {
                 let distance = Math.abs(i - x);
-                let reduction = Math.sqrt(radius * radius - distance * distance);  // Круглый участок разрушения
+                let reduction = Math.sqrt(radius * radius - distance * distance);
                 terrain[i] = Math.min(terrain[i] + reduction, canvas.height);
             }
         }
 
         function shoot() {
             let tank = tanks[turn];
-            if (tank.health > 0 && !projectile) {  // Проверка здоровья танка
+            if (tank.health > 0 && !projectile) {
                 projectile = {
                     x: tank.x + Math.cos(tank.angle * Math.PI / 180) * 30,
                     y: tank.y - Math.sin(tank.angle * Math.PI / 180) * 30,
                     angle: tank.angle,
                     time: 0,
-                    power: charge / 5 + 15, // Сила выстрела зависит от заряда
+                    power: charge / 5 + 15,
                     team: tank.team
                 };
                 charge = 0;
@@ -206,7 +371,7 @@
         document.addEventListener("keyup", (event) => {
             if (event.key === " ") {
                 charging = false;
-                if (tanks[turn].health > 0) {  // Проверка здоровья перед выстрелом
+                if (tanks[turn].health > 0) {
                     shoot();
                 }
             }
@@ -218,9 +383,16 @@
             tanks.forEach(drawTank);
             updateProjectile();
             drawProjectile();
+
             if (charging) {
                 charge = Math.min(charge + 1, 100);
             }
+
+            // Добавляем логику ИИ
+            if (aiControlEnabled && tanks[turn].team === 2) {
+                updateAI();
+            }
+
             ctx.fillStyle = "gray";
             ctx.fillRect(350, 10, 100, 10);
             ctx.fillStyle = "yellow";
@@ -231,32 +403,248 @@
                 ctx.font = "20px Arial";
                 ctx.fillText(winner, canvas.width / 2 - 80, 50);
             }
+
             requestAnimationFrame(gameLoop);
         }
 
+        function handleCanvasClick(event) {
+            if (!isPlacingTanks) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Проверка границ размещения
+            const isLeftSide = currentPlacingTeam === 1 && x < canvas.width / 2;
+            const isRightSide = currentPlacingTeam === 2 && x > canvas.width / 2;
+            if (!isLeftSide && !isRightSide) return;
+
+            // Проверка размещения на земле
+            const groundY = terrain[Math.floor(x)];
+            if (Math.abs(y - groundY) > 5) return;
+
+            // Добавление танка
+            tanks.push({
+                x: x,
+                y: groundY - 30,
+                angle: currentPlacingTeam === 1 ? 45 : 135,
+                health: 100,
+                color: currentPlacingTeam === 1 ? team1Color : team2Color,
+                team: currentPlacingTeam
+            });
+
+            placedTanksCount++;
+
+            // Проверка завершения расстановки
+            if (placedTanksCount >= totalTanksToPlace / 2) {
+                if (currentPlacingTeam === 1) {
+                    currentPlacingTeam = 2;
+                    placedTanksCount = 0;
+                } else {
+                    // Завершение расстановки
+                    isPlacingTanks = false;
+                    canvas.removeEventListener('click', handleCanvasClick);
+                    gameLoop();
+                }
+            }
+        }
+
+        // Удаляем дублированную функцию startGame и оставляем только одну
         function startGame(selectedMode) {
             mode = selectedMode;
             document.getElementById("menu").style.display = "none";
             terrain = generateTerrain(canvas.width, canvas.height);
-            tanks = mode === 1
-                ? [
-                    { x: 100, y: terrain[100] - 30, angle: 45, health: 100, color: "blue", team: 1 },
-                    { x: 700, y: terrain[700] - 30, angle: 135, health: 100, color: "red", team: 2 }
-                ]
-                : [
-                    { x: 100, y: terrain[100] - 30, angle: 45, health: 100, color: "blue", team: 1 },
-                    { x: 200, y: terrain[200] - 30, angle: 45, health: 100, color: "blue", team: 1 },
-                    { x: 600, y: terrain[600] - 30, angle: 135, health: 100, color: "red", team: 2 },
-                    { x: 700, y: terrain[700] - 30, angle: 135, health: 100, color: "red", team: 2 }
-                ];
+            tanks = [];
             gameOver = false;
             winner = "";
             turn = 0;
             projectile = null;
             charge = 0;
             charging = false;
-            gameLoop();
+
+            aiControlEnabled = document.getElementById('aiControlCheckbox').checked;
+            const isManualPlacement = document.getElementById('manualPlacementCheckbox').checked;
+
+            if (isManualPlacement) {
+                isPlacingTanks = true;
+                currentPlacingTeam = 1;
+                placedTanksCount = 0;
+                totalTanksToPlace = mode === 1 ? 2 : 4; // Для режима 1x1 - 2 танка, 2x2 - 4
+                canvas.addEventListener('click', handleCanvasClick);
+
+                // Запускаем цикл отрисовки для процесса размещения
+                // Добавляем кэш для преобразованных цветов
+                const colorCache = new Map();
+
+                function hexToRgb(hex) {
+                    // Проверяем кэш
+                    if (colorCache.has(hex)) {
+                        return colorCache.get(hex);
+                    }
+
+                    // Проверяем, что цвет не пустой и является строкой
+                    if (!hex || typeof hex !== 'string') {
+                        console.error('Ошибка: цвет не определен');
+                        return null;
+                    }
+
+                    // Преобразуем имена цветов в hex
+                    const colorMap = {
+                        'blue': '#0000ff',
+                        'red': '#ff0000',
+                        'purple': '#800080',
+                        '#b39800': '#b39800' // сохраняем существующий hex-цвет
+                    };
+
+                    // Если это имя цвета, преобразуем его в hex
+                    if (colorMap[hex]) {
+                        hex = colorMap[hex];
+                    }
+
+                    // Удаляем # в начале, если есть
+                    hex = hex.replace(/^#/, '');
+
+                    // Проверяем формат цвета
+                    if (hex.length === 3) {
+                        // Преобразуем короткий формат (fff) в полный (ffffff)
+                        hex = hex.split('').map(c => c + c).join('');
+                    } else if (hex.length !== 6) {
+                        console.error('Ошибка: неверный формат цвета. Ожидается #ffffff или ffffff');
+                        return null;
+                    }
+
+                    // Проверяем, что все символы допустимы
+                    if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+                        console.error('Ошибка: цвет содержит недопустимые символы');
+                        return null;
+                    }
+
+                    // Преобразуем в RGB
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+
+                    // Сохраняем в кэш
+                    const rgb = { r, g, b };
+                    colorCache.set(hex, rgb);
+                    return rgb;
+                }
+
+                function placementLoop() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawTerrain();
+
+                    tanks.forEach(drawTank);
+
+                    // Преобразуем выбранные цвета в формат rgba
+                    const team1Rgb = hexToRgb(team1Color);
+                    const team2Rgb = hexToRgb(team2Color);
+
+                    // Проверяем, что цвета корректно преобразованы
+                    if (!team1Rgb || !team2Rgb) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.15)'; // Резервный красный цвет
+                    } else {
+                        const team1Rgba = `rgba(${team1Rgb.r}, ${team1Rgb.g}, ${team1Rgb.b}, 0.15)`;
+                        const team2Rgba = `rgba(${team2Rgb.r}, ${team2Rgb.g}, ${team2Rgb.b}, 0.15)`;
+
+                        ctx.fillStyle = currentPlacingTeam === 1 ? team1Rgba : team2Rgba;
+                    }
+
+                    ctx.fillRect(
+                        currentPlacingTeam === 1 ? 0 : canvas.width / 2,
+                        0,
+                        canvas.width / 2,
+                        canvas.height
+                    );
+
+                    // Добавляем отладочную информацию
+                    ctx.fillStyle = "black";
+                    ctx.font = "14px Arial";
+                    ctx.fillText(
+                        `Цвет команды ${currentPlacingTeam}: ${team1Color || 'не определен'}`,
+                        10,
+                        20
+                    );
+
+                    // Текст подсказки
+                    ctx.fillStyle = "black";
+                    ctx.font = "20px Arial";
+                    const tanksToPlace = mode - placedTanksCount;
+                    ctx.fillText(
+                        `Команда ${currentPlacingTeam}: разместите ${tanksToPlace} танк(а/ов)`,
+                        canvas.width / 2 - 150,
+                        50
+                    );
+
+                    if (isPlacingTanks) {
+                        requestAnimationFrame(placementLoop);
+                    }
+                }
+                placementLoop();
+            } else {
+                // Автоматическая расстановка
+                if (mode === 1) {
+                    tanks = [
+                        { x: 100, y: terrain[100] - 30, angle: 45, health: 100, color: team1Color, team: 1 },
+                        { x: 900, y: terrain[900] - 30, angle: 135, health: 100, color: team2Color, team: 2 }
+                    ];
+                } else {
+                    tanks = [
+                        { x: 100, y: terrain[100] - 30, angle: 45, health: 100, color: team1Color, team: 1 },
+                        { x: 200, y: terrain[200] - 30, angle: 45, health: 100, color: team1Color, team: 1 },
+                        { x: 800, y: terrain[800] - 30, angle: 135, health: 100, color: team2Color, team: 2 },
+                        { x: 900, y: terrain[900] - 30, angle: 135, health: 100, color: team2Color, team: 2 }
+                    ];
+                }
+                gameLoop();
+            }
         }
+
+        // Исправленная функция обработки кликов
+        function handleCanvasClick(event) {
+            if (!isPlacingTanks) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Проверка границ размещения
+            const isLeftSide = currentPlacingTeam === 1 && x < canvas.width / 2;
+            const isRightSide = currentPlacingTeam === 2 && x > canvas.width / 2;
+            if (!isLeftSide && !isRightSide) return;
+
+            // Получаем координату земли под кликом
+            const groundY = terrain[Math.floor(x)];
+
+            // Добавление танка на поверхность земли
+            tanks.push({
+                x: x,
+                y: groundY - 10, // Танк появляется на поверхности земли
+                angle: currentPlacingTeam === 1 ? 45 : 135,
+                health: 100,
+                color: currentPlacingTeam === 1 ? team1Color : team2Color,
+                team: currentPlacingTeam
+            });
+
+            placedTanksCount++;
+
+            // Проверка завершения расстановки
+            const tanksPerTeam = mode;
+            if (placedTanksCount >= tanksPerTeam) {
+                if (currentPlacingTeam === 1) {
+                    currentPlacingTeam = 2;
+                    placedTanksCount = 0;
+                } else {
+                    isPlacingTanks = false;
+                    canvas.removeEventListener('click', handleCanvasClick);
+                    gameLoop();
+                }
+            }
+        }
+
+        // Инициализация выбранных цветов по умолчанию
+        document.querySelectorAll('.color-picker:nth-of-type(1) .color-option')[0].classList.add('selected');
+        document.querySelectorAll('.color-picker:nth-of-type(2) .color-option')[1].classList.add('selected');
     </script>
 </body>
 
