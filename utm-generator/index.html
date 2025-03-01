@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор UTM-ссылок</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white shadow-lg rounded-lg p-6 w-full max-w-2xl">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 text-center">Генератор UTM-ссылок Reshape</h2>
+
+        <div class="bg-gray-50 p-4 rounded-lg shadow mb-4">
+            <label class="block text-gray-700 font-semibold">Базовый URL</label>
+            <p class="text-xs text-gray-500 mb-2 pb-1 pt-1">Вставьте ссылку, к которой будут добавляться UTM-метки.</p>
+            <input type="text" id="baseUrl" placeholder="Введите базовую ссылку" class="w-full p-2 border rounded"
+                oninput="updateUTM()">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-gray-50 p-4 rounded-lg shadow">
+                <label class="block text-gray-700 font-semibold">Источник (utm_source)<span
+                        class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 mb-2 pb-1 pt-1">Откуда идет трафик (например, соцсеть, event, почтовая
+                    рассылка).</p>
+                <select id="utmSource" class="w-full p-2 border rounded" onchange="updateUTM()" required>
+                    <option value="">Не выбрано</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="vk">VK</option>
+                    <option value="habr">Habr</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="event">Event</option>
+                    <option value="email">Email</option>
+                    <option value="printed_media">Печатные материалы</option>
+                </select>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg shadow">
+                <label class="block text-gray-700 font-semibold">Тип трафика (utm_medium)<span
+                        class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 mb-2 pb-1 pt-1">Канал распространения (например, социальные сети,
+                    QR-коды, платная реклама и т. д.).</p>
+                <select id="utmMedium" class="w-full p-2 border rounded" onchange="updateUTM()" required>
+                    <option value="">Не выбрано</option>
+                    <option value="social">Социальные сети</option>
+                    <option value="qr">QR-код</option>
+                    <option value="cpc">Платная реклама</option>
+                    <option value="referral">Реферальный трафик</option>
+                    <option value="offline">Офлайн-мероприятие</option>
+                    <option value="email">Email-рассылка</option>
+                </select>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg shadow">
+                <label class="block text-gray-700 font-semibold">Кампания (utm_campaign)</label>
+                <p class="text-xs text-gray-500 mb-2 pb-1 pt-1">Название рекламной кампании или мероприятия.</p>
+                <select id="utmCampaign" class="w-full p-2 border rounded"
+                    onchange="toggleCustomCampaignInput(); updateUTM()">
+                    <option value="">Не выбрано</option>
+                    <option value="reshape_analytics">Reshape Analytics</option>
+                    <option value="rpc">RPC</option>
+                    <option value="logistics_show">Сильное звено</option>
+                    <option value="loginomday">LoginomDay</option>
+                    <option value="cemat">Cemat</option>
+                    <option value="hr">HR</option>
+                    <option value="other">Другое</option>
+                </select>
+                <div id="customCampaignWrapper" class="mt-2 hidden">
+                    <input type="text" id="customCampaign" placeholder="Введите название кампании"
+                        class="w-full p-2 border rounded" oninput="updateUTM()">
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg shadow">
+                <label class="block text-gray-700 font-semibold">Контент (utm_content)</label>
+                <p class="text-xs text-gray-500 mb-2 pb-1 pt-1">Дополнительная информация о ссылке (например, название
+                    поста или рекламного формата).</p>
+                <input type="text" id="utmContent" placeholder="Введите utm_content" class="w-full p-2 border rounded"
+                    oninput="updateUTM()">
+            </div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <h3 class="text-lg font-semibold text-gray-700">Сгенерированная ссылка</h3>
+            <p id="output" class="text-sm text-gray-800 bg-gray-200 p-3 rounded mt-2 break-all"></p>
+        </div>
+
+        <div class="mt-4">
+            <button onclick="copyToClipboard()"
+                class="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600">Скопировать</button>
+            <p id="copyMessage" class="text-green-500 text-sm mt-2 hidden">Ссылка скопирована!</p>
+        </div>
+
+        <div id="historyWrapper" class="bg-gray-50 p-4 rounded-lg mt-8 w-full max-w-2xl hidden">
+            <h3 class="text-lg font-semibold text-gray-700">История ссылок</h3>
+            <div id="history" class="mt-2">
+                <!-- История ссылок будет отображаться здесь -->
+            </div>
+            <button onclick="clearHistory()" id="clearHistoryButton" class="mt-2 text-red-500 text-sm hidden">Очистить
+                историю</button>
+        </div>
+    </div>
+
+    <script>
+        let history = JSON.parse(localStorage.getItem('utmHistory')) || [];
+
+        function updateUTM() {
+            const baseUrl = document.getElementById("baseUrl").value;
+            const source = document.getElementById("utmSource").value;
+            const medium = document.getElementById("utmMedium").value;
+            const campaign = document.getElementById("utmCampaign").value === 'other' ? document.getElementById("customCampaign").value : document.getElementById("utmCampaign").value;
+            const content = document.getElementById("utmContent").value;
+
+            let utmUrl = baseUrl;
+
+            if (source) utmUrl += `?utm_source=${source}`;
+            if (medium) utmUrl += `&utm_medium=${medium}`;
+            if (campaign) utmUrl += `&utm_campaign=${encodeURIComponent(campaign)}`;
+            if (content) utmUrl += `&utm_content=${encodeURIComponent(content)}`;
+
+            document.getElementById("output").textContent = utmUrl;
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById("output").textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const copyMessage = document.getElementById("copyMessage");
+                copyMessage.classList.remove("hidden");
+                setTimeout(() => {
+                    copyMessage.classList.add("hidden");
+                }, 2000);
+                addToHistory(text);
+            });
+        }
+
+        function addToHistory(link) {
+            if (history.length >= 20) {
+                history.pop();
+            }
+            history.unshift(link);
+            localStorage.setItem('utmHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const historyContainer = document.getElementById("history");
+            historyContainer.innerHTML = '';
+            history.forEach((link, index) => {
+                const linkElement = document.createElement('p');
+                linkElement.textContent = link;
+                linkElement.classList.add('text-gray-700', 'cursor-pointer', 'text-sm', 'break-all', 'mb-2');
+                linkElement.onclick = () => {
+                    navigator.clipboard.writeText(link).then(() => {
+                        const copyMessage = document.getElementById("copyMessage");
+                        copyMessage.classList.remove("hidden");
+                        setTimeout(() => {
+                            copyMessage.classList.add("hidden");
+                        }, 2000);
+                    });
+                };
+                historyContainer.appendChild(linkElement);
+            });
+
+            const clearHistoryButton = document.getElementById("clearHistoryButton");
+            const historyWrapper = document.getElementById("historyWrapper");
+            if (history.length > 0) {
+                historyWrapper.classList.remove("hidden");
+                clearHistoryButton.classList.remove("hidden");
+            } else {
+                historyWrapper.classList.add("hidden");
+                clearHistoryButton.classList.add("hidden");
+            }
+        }
+
+        function clearHistory() {
+            history = [];
+            localStorage.removeItem('utmHistory');
+            renderHistory();
+        }
+
+        function toggleCustomCampaignInput() {
+            const campaignSelect = document.getElementById("utmCampaign");
+            const customCampaignWrapper = document.getElementById("customCampaignWrapper");
+            if (campaignSelect.value === 'other') {
+                customCampaignWrapper.classList.remove("hidden");
+            } else {
+                customCampaignWrapper.classList.add("hidden");
+            }
+        }
+
+        renderHistory();  // Загружаем историю при загрузке страницы
+    </script>
+</body>
+
+</html>
